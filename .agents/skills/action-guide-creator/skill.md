@@ -185,6 +185,9 @@ npx tsc --noEmit
 npx jest --bail
 # ⚠️ NEVER run `npx jest` from monorepo root — no jest config there
 
+# Backend smoke test (if any *.module.ts or @Inject changed) — from project root
+powershell -ExecutionPolicy Bypass -File "c:\htdocs\viettel-ocr\scripts\smoke-test.ps1"
+
 # Architecture (if domain work) — use grep_search tool:
 #   query "@nestjs" in packages/backend/src/domain/  → expect 0 results
 #   query "drizzle-orm" in packages/backend/src/domain/  → expect 0 results

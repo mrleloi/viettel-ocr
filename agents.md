@@ -41,6 +41,7 @@
 ### Workflow Discipline
 13. ALWAYS read the relevant spec/design doc before implementing
 14. ALWAYS run tests after implementation to verify green
+14b. **ALWAYS run backend smoke test** (`scripts/smoke-test.ps1`) after changing any `*.module.ts`, `@Inject()` constructor, or database schema — `tsc` + `jest` CANNOT detect runtime DI wiring errors
 15. ALWAYS produce handoff document before session ends
 16. ALWAYS follow the project structure defined in `documents/06-low-level-design.md`
 17. Max scope per session: 1 phase step (e.g., "Step 1.2: Domain entities")

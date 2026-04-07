@@ -33,6 +33,27 @@ npx tsc --noEmit
 
 **Blocks**: session completion if any command fails.
 
+## Gate 1.5 — Backend Smoke Test (per session, if backend changed)
+
+> ⚠️ **WHY THIS EXISTS**: Sessions 1–12 passed Gate 1 (tsc + jest) while having 5 hidden DI/database
+> errors that only surfaced when the server was actually started. Unit tests mock DI entirely, so they
+> can't detect missing module imports or unresolvable providers.
+
+```powershell
+# Run from project root:
+powershell -ExecutionPolicy Bypass -File "c:\htdocs\viettel-ocr\scripts\smoke-test.ps1"
+```
+
+**What it does**: Starts `ts-node src/main.ts`, waits for "Nest application successfully started" (up to 30s), then kills.
+
+**Common failures**:
+- `UnknownDependenciesException` → missing module import (e.g., `FileStorageModule` not imported where `IFileStorage` is injected)
+- `SQLITE_ERROR` → table doesn't exist → check `connection.ts` `initializeTables()`
+- Circular dependency → use `forwardRef()` on BOTH sides
+
+**When to run**: After ANY change to `*.module.ts`, constructor `@Inject()`, or database schema.
+
+**Blocks**: session completion if server doesn't start.
 ## Gate 2 — Architecture Compliance (per session)
 
 | Check | How to verify | Pass Criteria |

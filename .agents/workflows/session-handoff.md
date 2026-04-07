@@ -59,6 +59,10 @@ For each item:
    - OR from packages/backend: npx tsc --noEmit; npx jest --bail
    ⚠️ Do NOT use bash && syntax on PowerShell
    
+   - Backend smoke test (if backend changed):
+     powershell -ExecutionPolicy Bypass -File "c:\htdocs\viettel-ocr\scripts\smoke-test.ps1"
+     ⚠️ tsc+jest CANNOT detect DI wiring errors — only starting the server can
+   
 2. Run architecture checks (use grep_search tool or Select-String):
    - @nestjs in domain/ → 0 hits
    - drizzle-orm in domain/ → 0 hits

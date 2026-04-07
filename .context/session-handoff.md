@@ -1,62 +1,65 @@
 # Session Handoff
 
-## Last Session: Session 13 — Schema & Mapping Pages + Backend Startup Fixes
+## Last Session: Session 14 — Products, Exports & Diagnostics Pages
 **Date**: 2026-04-07  
 Status: ✅ Complete
 
 ### What was done
 
-#### Frontend — Schema Management Pages
-- **Schema List Page** — `src/app/schemas/page.tsx` (replaced stub):
-  - Card grid with auto-fill responsive layout, loading skeletons, error/empty states
-  - "Tạo mẫu mới" + "Làm mới" action buttons
-- **Schema Card** — `src/components/schema/SchemaCard.tsx`:
-  - Gradient hover border, NCC info, MST monospace, version badge, date
-- **Schema Wizard** — `src/app/schemas/new/page.tsx`:
-  - 2-step wizard: Basic Info (name, NCC, MST, description) → Review & Confirm
-  - Step indicator with numbered circles and connector lines
-  - API integration with `apiClient.createSchema()`
-- **Schema Detail** — `src/app/schemas/[id]/page.tsx`:
-  - Full detail view with metadata sidebar
-  - Inline editing for name, NCC, MST, description fields
-  - Toast notifications on save
+#### Frontend — Products Page (`src/app/products/page.tsx`)
+- **ProductTable** — `src/components/product/ProductTable.tsx`:
+  - Full data table with skeleton loading, empty state, relative time formatting
+  - Status badges (active/inactive), product code with mono styling, category badges
+- **SyncResultBanner** — `src/components/product/SyncResultBanner.tsx`:
+  - Animated banner showing fetched/created/updated/conflicts counts
+  - Success/warning variants based on conflict count, dismissable
+- **Search bar** with case-insensitive filtering on name + code + category
+- **Sync button** calls `apiClient.syncProducts()` → shows result banner + toast
+- Product count + active count in subtitle
 
-#### Frontend — Mapping Management Page
-- **Mappings Page** — `src/app/mappings/page.tsx` (replaced stub):
-  - Schema filter dropdown, error banner, empty state
-  - "Tạo ánh xạ mới" button opens create dialog
-- **Mapping Table** — `src/components/mapping/MappingTable.tsx`:
-  - Skeleton loading, partner/Viettel product cells, source badges
-- **Create Mapping Dialog** — `src/components/mapping/CreateMappingDialog.tsx`:
-  - Modal with schema selector, partner name, Viettel code/name, source type
-  - Form validation and API submission
+#### Frontend — Export Page (`src/app/exports/page.tsx`)
+- **ExportForm** — `src/components/export/ExportForm.tsx`:
+  - Format selector cards (CSV / JSON) with active state styling
+  - Date range inputs (from/to)
+  - Batch and schema filter dropdowns (populated from API)
+  - Submit with loading spinner
+- **ExportResult** — `src/components/export/ExportResult.tsx`:
+  - Result card with filename, record count, file size (formatted KB/MB)
+  - Download button (creates blob URL → opens in new tab)
 
-#### CSS — ~860 lines added to globals.css
-- Form elements (input, textarea, select with custom chevron)
-- Dialog enhancements (close button, error banner, mapping dialog width)
-- Toast notifications with slide-in + fade-out animations
-- Schema card grid, wizard steps, detail page grid
-- Mapping filter bar, table cell styles
-- Page entrance animation
-- Responsive breakpoints (1024px + 640px)
+#### Frontend — Diagnostics Page (`src/app/diagnostics/page.tsx`) — NEW
+- **HealthCard** — `src/components/diagnostics/HealthCard.tsx`:
+  - Server health with pulse animation (green/red/gray)
+  - API latency measurement (performance.now)
+  - Last checked timestamp, auto-refresh indicator
+- **StatsGrid** — `src/components/diagnostics/StatsGrid.tsx`:
+  - 4 stat cards (batches, invoices, processed, errors)
+  - Invoice status breakdown with color-coded progress bars
+- **Auto-refresh** every 30 seconds (health + stats)
+- Added `/diagnostics` route to sidebar and AppShell title mapping
 
-#### Backend — Critical Startup Fixes
-- **Database auto-migration** — `connection.ts`: Added `initializeTables()` with all 14 `CREATE TABLE IF NOT EXISTS` statements so tables are created on first run
-- **DI circular dependency** — `QueueModule` ↔ `ApplicationModule`: Fixed with `forwardRef()` on both sides
-- **QueueWorkerService constructor** — Optional `pollIntervalMs`/`batchSize` params now use `@Optional() @Inject()` decorators instead of bare primitives
-- **ApplicationModule imports** — Added `FileStorageModule`, `AiModule`, `ExternalApiModule` so use case dependencies resolve
-- **InterfaceModule imports** — Added `FileStorageModule` for `ExportController`'s direct `@Inject('IFileStorage')`
+#### CSS — ~1036 lines added to globals.css
+- Products: table, search bar, sync banner, skeleton loading
+- Exports: form, format cards, date inputs, result card, download button
+- Diagnostics: health card pulse animation, stats grid, status bars
+- Toast error variant, empty state shared component, btn-spinner, btn-lg
+- Responsive breakpoints (1024px + 640px) for all 3 pages
+
+#### Constants — Extended `VI` object
+- Products: 14 new keys (sync, search, status, result labels)
+- Exports: 14 new keys (form, format, date, result labels)
+- Diagnostics: 22 new keys (health, stats, status labels)
+- Navigation: added `diagnostics: 'Chẩn đoán'`
 
 ### Quality Gates
-- Backend: tsc ✅ | 391 tests (47 suites) ✅
-- Frontend: next build ✅ (all routes generated)
-- Full stack: Backend running on :3000 + Frontend on :3001 confirmed working end-to-end
+- Backend: 391 tests (47 suites) ✅
+- Frontend: `next build` ✅ (12 routes, all static/dynamic generated)
+- No backend changes needed — all API endpoints already exist
 
 ### What's next
-- **Session 14**: Phase 4.7 + 4.8 + 4.9 — Products page, Export page, Diagnostics page
-- Consider adding seed data for demo purposes
+- **Session 15**: Phase 4.10 + 5.x — SSE integration + setup/start scripts + E2E testing
 
 ### Test counts
 - Previous: 391 tests (47 suites)
-- Added: 0 (frontend has no tests yet)
+- Added: 0 (frontend pages, no tests)
 - Current: 391 tests (47 suites)

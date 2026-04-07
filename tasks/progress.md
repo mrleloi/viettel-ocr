@@ -1,6 +1,6 @@
 # Progress Tracker
 
-> Last updated: 2026-04-07 (Session 12 complete)
+> Last updated: 2026-04-07 (Session 15 complete — MVP FEATURE-COMPLETE)
 
 ## Phase 1: Foundation & Domain Core ✅ COMPLETE
 
@@ -36,20 +36,20 @@
 | 4.2 | Dashboard page | ✅ Done | 11 | StatCard + RecentBatchesTable + ActivityFeed, real API data |
 | 4.3 | Upload page | ✅ Done | 11 | FileDropzone + UploadResult, drag & drop, progress bar |
 | 4.4 | Review queue + detail | ✅ Done | 12 | ReviewFilter + InvoiceTable + RejectDialog + detail page |
-| 4.5 | Schema management | ⬜ Not started | 13 | |
-| 4.6 | Mapping management | ⬜ Not started | 13 | |
-| 4.7 | Product management | ⬜ Not started | 14 | |
-| 4.8 | Export page | ⬜ Not started | 14 | |
-| 4.9 | Diagnostics page | ⬜ Not started | 14 | |
-| 4.10 | SSE integration | ⬜ Not started | 15 | |
+| 4.5 | Schema management | ✅ Done | 13 | Schema list + wizard + detail + inline editing |
+| 4.6 | Mapping management | ✅ Done | 13 | Mapping table + filter + create dialog |
+| 4.7 | Product management | ✅ Done | 14 | Product table + sync + search + result banner |
+| 4.8 | Export page | ✅ Done | 14 | Export form + format cards + result + download |
+| 4.9 | Diagnostics page | ✅ Done | 14 | Health card + pulse animation + stats grid + auto-refresh |
+| 4.10 | SSE integration | ✅ Done | 15 | EventBusService + EventsController + useServerEvents hook + Dashboard live badge |
 
 ## Phase 5: Integration & Polish
 
 | Step | Description | Status | Session | Notes |
 |------|------------|--------|---------|-------|
-| 5.1 | E2E testing | ⬜ Not started | 15 | |
-| 5.2 | Setup script | ⬜ Not started | 15 | |
-| 5.3 | Start script | ⬜ Not started | 15 | |
+| 5.1 | E2E testing | ✅ Done | 15 | 8-step full flow: health → upload → list → approve → export |
+| 5.2 | Setup script | ✅ Done | 15 | Node.js version check, deps, config, data dirs, shared build |
+| 5.3 | Start script | ✅ Done | 15 | Concurrent backend + frontend + mock server, graceful shutdown |
 | 5.4 | Config validation | ⬜ Not started | — | |
 | 5.5 | Error handling polish | ⬜ Not started | — | |
 | 5.6 | Performance testing | ⬜ Not started | — | |
@@ -61,11 +61,11 @@
 | Domain tests | 193 | 100-200 |
 | Infrastructure tests | 109 | 30-100 |
 | Application tests | 59 | 20-50 |
-| Interface tests | 30 | 20-50 |
-| E2E tests | 0 | 5-10 |
-| Total tests | 391 | 300+ |
-| Total source files | ~130 | ~200 |
-| Sessions completed | 12 | 15 |
+| Interface tests | 37 | 20-50 |
+| E2E tests | 8 | 5-10 |
+| Total tests | 406 | 300+ |
+| Total source files | ~150 | ~200 |
+| Sessions completed | 15 | 15 |
 
 ## Session Log
 
@@ -84,3 +84,6 @@
 | 10 | 2026-04-07 | Antigravity | Swagger/OpenAPI + API client + layout + sidebar + header + 7 route stubs (391 tests) | Tailwind CSS v4 already configured, Next.js rewrites | Session 11: dashboard + upload |
 | 11 | 2026-04-07 | Antigravity | Dashboard (3 components) + Upload (2 components) + 550 CSS lines (391 tests) | API proxy fails gracefully without backend, shimmer loading | Session 12: review pages |
 | 12 | 2026-04-07 | Antigravity | Review queue + invoice detail + 3 components + 590 CSS lines (391 tests) | Dialog/modal pattern, inline editing, dynamic routes | Session 13: schema + mapping pages |
+| 13 | 2026-04-07 | Antigravity | Schema (list+wizard+detail) + Mapping (table+dialog) + 860 CSS + backend DI/migration fixes (391 tests) | forwardRef circular dep, auto-migration DDL, full-stack working | Session 14: products + export + diagnostics |
+| 14 | 2026-04-07 | Antigravity | Products (table+sync+search) + Exports (form+result+download) + Diagnostics (health+stats+auto-refresh) + 1036 CSS (391 tests) | No backend changes needed, all APIs already existed | Session 15: SSE + E2E + scripts |
+| 15 | 2026-04-07 | Antigravity | SSE (EventBus+Controller+hook) + E2E (8-step flow) + seed script + setup/start improvements (406 tests) | NestJS @Sse works with RxJS Subject, POST returns 201 by default | **MVP COMPLETE** |

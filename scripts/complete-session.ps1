@@ -66,13 +66,23 @@ if ($testOutput -match "Tests:.*passed") {
 }
 
 # --- Check 5: Frontend builds ---
-Write-Host "[5/5] Checking frontend build..." -ForegroundColor Yellow
+Write-Host "[5/6] Checking frontend build..." -ForegroundColor Yellow
 $buildResult = & cmd /c "cd $root\invoice-tool\packages\frontend && npx next build 2>&1" | Select-Object -Last 5
 $buildOutput = $buildResult -join "`n"
 if ($buildOutput -match "Compiled successfully") {
     Write-Host "  OK: Frontend builds" -ForegroundColor Green
 } else {
     Write-Host "  WARN: Could not confirm build pass (may be OK)" -ForegroundColor DarkYellow
+}
+
+# --- Check 6: Backend smoke test (server starts) ---
+Write-Host "[6/6] Running backend smoke test..." -ForegroundColor Yellow
+$smokeResult = & powershell -ExecutionPolicy Bypass -File "$root\scripts\smoke-test.ps1" -TimeoutSeconds 20
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "  OK: Backend starts successfully" -ForegroundColor Green
+} else {
+    $errors += "Backend smoke test failed - server does not start. Run smoke-test.ps1 to debug."
+    Write-Host "  FAIL: Backend does not start" -ForegroundColor Red
 }
 
 # --- Summary ---

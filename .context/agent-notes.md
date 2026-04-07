@@ -13,7 +13,7 @@
 
 ## Current Progress
 
-- **Phase**: Phase 4 — Frontend (4.1-4.4 complete, Phase 3 fully done)
+- **Phase**: Phase 4 — Frontend (4.1-4.9 complete, Phase 3 fully done)
 - **Domain entities**: 8 implemented (Invoice, Schema, FingerprintRule, FieldDefinition, Batch, Product, SyncConflict, Mapping)
 - **Value objects**: 3 implemented (TaxId, Money, Confidence)
 - **Repository interfaces**: 8 created
@@ -29,11 +29,11 @@
 - **API endpoints**: 17 REST endpoints across 7 controllers
 - **Swagger UI**: `/api/docs` (dev mode only) — auto-generated from controller decorators
 - **Frontend API client**: Typed `apiClient` with methods for all 17 endpoints
-- **Frontend pages**: Dashboard ✅, Upload ✅, Review Queue ✅, Invoice Detail ✅, + 4 stubs (Schemas, Products, Mappings, Exports)
-- **Frontend layout**: AppShell (collapsible sidebar + header) with Vietnamese labels
-- **Frontend components**: StatCard, RecentBatchesTable, ActivityFeed, FileDropzone, UploadResult, ReviewFilter, InvoiceTable, RejectDialog
+- **Frontend pages**: Dashboard ✅, Upload ✅, Review Queue ✅, Invoice Detail ✅, Schemas (list+wizard+detail) ✅, Mappings ✅, Products ✅, Exports ✅, Diagnostics ✅ — ALL PAGES DONE
+- **Frontend layout**: AppShell (collapsible sidebar + header) with Vietnamese labels, 12 routes
+- **Frontend components**: 20+ components (StatCard, RecentBatchesTable, ActivityFeed, FileDropzone, UploadResult, ReviewFilter, InvoiceTable, RejectDialog, SchemaCard, CreateMappingDialog, MappingTable, ProductTable, SyncResultBanner, ExportForm, ExportResult, HealthCard, StatsGrid)
 - **Tests**: 391 total (193 domain + 109 infra + 59 application + 30 interface, all passing)
-- **Next session**: Session 13 — Schema wizard + Mapping management pages
+- **Next session**: Session 15 — SSE integration + setup/start scripts + E2E testing
 
 ## Bounded Contexts
 
@@ -130,6 +130,29 @@
 - QueueWorkerService uses `setInterval` polling with `processing` guard against concurrent execution
 - Crash recovery: `resetStaleJobs()` on module init resets `processing` → `pending`
 
+### NestJS DI Wiring Rules (Session 13 — CRITICAL)
+> ⚠️ These rules were learned from 5 hidden DI bugs that accumulated across Sessions 5-9 without detection.
+> Unit tests mock DI entirely, so they CANNOT detect missing module imports or unresolvable providers.
+
+- **Module import completeness**: If `UseCaseX` depends on `@Inject('IFoo')`, the module providing `IFoo` MUST be imported by the module that provides `UseCaseX`
+- **`@Global()` modules are the exception**: `DatabaseModule` and `ConfigModule` are `@Global()`, so their tokens are available everywhere without explicit import
+- **Non-global modules that must be explicitly imported**: `FileStorageModule` (IFileStorage), `AiModule` (IOcrService), `ExternalApiModule` (IProductApiClient), `QueueModule` (IJobQueue)
+- **Circular dependency**: If `ModuleA` imports `ModuleB` AND `ModuleB` imports `ModuleA`, use `forwardRef(() => ModuleX)` on BOTH sides, not just one
+- **Primitive constructor params**: If a NestJS-managed service has number/string constructor params (not injected from DI), use `@Optional() @Inject('TOKEN_NAME')` with a value provider, or use `@Optional()` alone with a default value
+- **Controllers injecting ports directly**: If a controller (not just use case) has `@Inject('IFoo')`, the controller's module must also import the module providing `IFoo`
+
+### Database Auto-Migration (Session 13)
+- `createDatabase()` in `connection.ts` MUST call `initializeTables()` with `CREATE TABLE IF NOT EXISTS` for ALL tables
+- Test helper (`createTestDb()`) has its own DDL — but the production path (`createDatabase()`) also needs it
+- When adding a new table to schema: update BOTH `initializeTables()` in `connection.ts` AND `createTestDb()` in test helper
+- **Root cause**: 8 sessions passed with no tables in production DB because tests use in-memory DB with manual DDL
+
+### Backend Smoke Test (Session 13)
+- **`tsc --noEmit` + `jest --bail` are NOT sufficient** to verify backend health — they don't exercise the NestJS DI container at runtime
+- **MUST run `smoke-test.ps1`** after ANY change to: `*.module.ts`, `@Inject()` decorators, or database schema
+- Smoke test script: `scripts/smoke-test.ps1` — starts server, waits for "successfully started", kills, returns exit code
+- Added to `complete-session.ps1` as Check 6 and to `quality-gate-pipeline.md` as Gate 1.5
+
 ### Type Gotchas (Session 7)
 - `LineItemProps` (shared package) requires `vatRate: number | null`, `vatAmount: number | null`, `totalWithVat: number | null` — not just basic fields
 - `name: string` (NOT nullable) in LineItemProps; use `''` as fallback
@@ -180,6 +203,21 @@
 - **Amount formatting**: `Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })`
 - **Dynamic routes**: `/review/[id]/page.tsx` → `useParams()` to get `id`, `useRouter()` for navigation
 - **CSS `@theme inline` warning**: IDE shows "Unknown at rule @theme" — false positive from CSS linter not understanding Tailwind 4, ignore safely
+
+### Frontend Patterns (Session 14)
+- **Product sync flow**: Sync button → `setSyncing(true)` → `apiClient.syncProducts()` → show `SyncResultBanner` with counts → refresh product list
+- **Client-side search**: `useMemo` with case-insensitive filter on multiple fields (name + code + category) — no API call needed
+- **Format selector cards**: Radio-like button group with `.active` class toggle — better UX than `<select>` for 2-3 options
+- **File size formatting**: `formatFileSize(bytes)` — log-based unit selection (B/KB/MB/GB)
+- **Relative time**: `formatRelativeTime(dateStr)` — "Vừa xong", "X phút trước", "X ngày trước", fallback to `toLocaleDateString`
+- **Blob download**: `apiClient.downloadExport(id)` → `URL.createObjectURL(blob)` → `window.open(url, '_blank')`
+- **Auto-refresh pattern**: `useRef<ReturnType<typeof setInterval>>` → `setInterval(30000)` → cleanup in `useEffect` return
+- **Health check latency**: `performance.now()` before/after API call → round to integer ms
+- **Diagnostics stats**: Compute from raw batch/invoice lists — no dedicated stats endpoint needed
+- **Status bars with dynamic width**: `style={{ width: \`${pct}%\` }}` with `Math.max(pct, 2)` minimum
+- **Empty state component**: Shared `.empty-state` CSS class with icon + title + desc — reusable pattern
+- **No backend changes for 3 pages**: All API endpoints existed from Session 9 — frontend-only sessions are very fast
+- **CSS organization**: ~1036 lines for 3 pages — keep page-specific CSS sections clearly separated with comment headers
 
 
 ## Key Files

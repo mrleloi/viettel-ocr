@@ -63,6 +63,25 @@ npm test
 
 > ⚠️ **NEVER** run `npx jest` from monorepo root — no Jest config there, all suites fail.
 
+### 2.5 Backend Smoke Test (if backend changed)
+
+> ⚠️ **WHY**: `tsc` and `jest` cannot detect missing NestJS module imports or unresolvable DI providers.
+> Only starting the actual server exercises the full DI container.
+
+```powershell
+# From project root:
+powershell -ExecutionPolicy Bypass -File "c:\htdocs\viettel-ocr\scripts\smoke-test.ps1"
+```
+
+**Must run when**: Any `*.module.ts`, `@Inject()` constructor, or database schema was changed.
+
+**Common failures**:
+| Error | Fix |
+|-------|-----|
+| `UnknownDependenciesException: can't resolve "IFoo"` | Import the module that provides `IFoo` into the consuming module |
+| `Circular dependency between FooModule and BarModule` | Use `forwardRef(() => FooModule)` on BOTH sides |
+| `SQLITE_ERROR: no such table` | Add `CREATE TABLE IF NOT EXISTS` to `connection.ts` `initializeTables()` |
+| Primitive constructor params unresolvable | Add `@Optional() @Inject('TOKEN')` decorators |
 ### 3. Architecture Compliance
 
 **Use the `grep_search` agent tool** (preferred — works on all OS):

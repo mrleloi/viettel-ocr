@@ -1,42 +1,47 @@
 # Session Handoff
 
-## Session: 6 — External Integrations
-- **Status**: ✅ COMPLETE
-- **Date**: 2026-04-07
-- **Phase Step**: 2.2
+## Last Session: Session 8 — Remaining Application Use Cases
+**Date**: 2026-04-07
+**Status**: ✅ Complete
 
-## What Was Done
-1. **Domain Port Interfaces** (3 interfaces):
-   - `IOcrService` — OCR extraction + classification contract (`domain/processing/ocr.service.ts`)
-   - `IProductApiClient` — Viettel product API sync contract (`domain/product/product-api.client.ts`)
-   - `IFileStorage` — File storage operations contract (`domain/shared/file-storage.ts`)
+### What was done
+- **ApproveInvoiceUseCase** — `application/review/approve-invoice.use-case.ts` (5 tests)
+  - Status guard (needs_review only), batch counter update, batch-not-found edge case
+- **RejectInvoiceUseCase** — `application/review/reject-invoice.use-case.ts` (6 tests)
+  - Reason validation (non-empty), status guard, batch error counter
+- **EditInvoiceUseCase** — `application/review/edit-invoice.use-case.ts` (5 tests)
+  - Editable field whitelist, setExtractedData + markAsNeedsReview restore, non-editable fields ignored
+- **CreateSchemaUseCase** — `application/schema/create-schema.use-case.ts` (5 tests)
+  - Tax ID validation via TaxId VO, duplicate check by NCC tax ID, cascade create rules+fields
+- **UpdateSchemaUseCase** — `application/schema/update-schema.use-case.ts` (4 tests)
+  - updateInfo, updatePromptTemplate, activate/deactivate status transitions
+- **SyncProductsUseCase** — `application/product/sync-products.use-case.ts` (5 tests)
+  - Create new, update existing, idempotent re-sync, API error handling, conflict detection
+- **CreateMappingUseCase** — `application/mapping/create-mapping.use-case.ts` (4 tests)
+  - Manual/auto_learned/bulk_import sources, schema existence check
+- **CreateExportUseCase** — `application/export/create-export.use-case.ts` (5 tests)
+  - CSV/JSON serialization, empty exports, filter approved only, invalid format guard
+- **ApplicationModule** updated — all 10 use cases registered (2 prior + 8 new)
+- **Quality gate**: tsc ✅ | 361 tests ✅ | architecture drift ✅
 
-2. **Infrastructure Implementations** (3 clients):
-   - `GeminiClient` — Gemini 2.0 Flash API with retry logic (429→3x backoff, 500→2x, 4xx→fail fast)
-   - `ViettelProductClient` — External product API with pagination + search + health check
-   - `LocalFileStorage` — Node.js fs/promises with path traversal protection
+### What was found
+- `InvoiceType` is typed union `'original' | 'adjustment' | 'replacement'` — not free-form string
+- `Product.markSynced()` requires `externalId: string` argument
+- `FingerprintRule` valid rule types: `'mst_exact' | 'keyword' | 'symbol_regex' | 'custom'` (not `'tax_id'`)
+- `EditInvoiceUseCase` must call `setExtractedData()` then `markAsNeedsReview()` to preserve status
+- `InvoiceProps` is a typed interface — cannot be cast to `Record<string, unknown>` directly
 
-3. **NestJS Module Registration** (3 modules):
-   - `AiModule` → exports `IOcrService`
-   - `ExternalApiModule` → exports `IProductApiClient`
-   - `FileStorageModule` → exports `IFileStorage`
-   - All imported in `AppModule`
+### What's next
+- **Session 9**: Phase Step 3.1 — All REST controllers + DTOs + OpenAPI spec
+  - Batch/upload controllers
+  - Invoice/processing controllers
+  - Review controllers
+  - Schema CRUD controllers
+  - Product sync controllers
+  - Mapping controllers
+  - Export controllers
 
-4. **Tests**: 32 new tests (8 Gemini + 9 Viettel + 15 FileStorage)
-
-## Quality Gate Results
-- `tsc --noEmit`: 0 errors ✅
-- `jest --bail`: 278 passed (246 existing + 32 new) ✅
-- Architecture drift: 0 violations (no @nestjs, drizzle-orm, `: any`, or node:fs in domain) ✅
-
-## What Was Found
-- ConfigModule is `@Global()` — use direct class injection (not string tokens) for `EnvConfigService`
-- GeminiClient tests with fake timers are complex — used `createForTesting()` with 0ms base delay instead
-- Mock `global.fetch` pattern works well for both Gemini and Viettel client tests
-
-## What's Next
-- **Session 7**: Phase Step 2.3 + 2.4a — Job Queue + Upload/Processing use cases
-  - Implement `BullMQ` job queue for async processing
-  - Implement `UploadUseCase`, `ProcessInvoiceUseCase`
-  - Wire use cases to domain entities + repository interfaces
-  - Action guide: `tasks/action-guides/s07-queue-usecases.md` (create first)
+### Test counts
+- Previous: 322 tests
+- Added: 39 tests
+- Current: 361 tests (40 suites)

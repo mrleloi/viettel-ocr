@@ -161,17 +161,20 @@ export function generateId(): string {
 
 Run ALL of these before claiming done:
 
-```bash
-# Build
-cd invoice-tool/packages/backend && npx tsc --noEmit
+> ⚠️ **OS**: Windows + PowerShell. Do NOT use bash `&&` or `grep -r | wc -l`.
 
-# Tests
-cd invoice-tool && npm test -- --bail
+```powershell
+# Build — from packages/backend/ directory
+npx tsc --noEmit
 
-# Architecture (domain purity)
-grep -r "@nestjs" packages/backend/src/domain/ | wc -l    # expect 0
-grep -r ": any" packages/backend/src/domain/ | wc -l      # expect 0
-grep -r "drizzle-orm" packages/backend/src/domain/ | wc -l # expect 0
+# Tests — from packages/backend/ directory
+npx jest --bail
+# ⚠️ NEVER run `npx jest` from monorepo root — no jest config there
+
+# Architecture checks — use grep_search tool:
+#   query "@nestjs" in packages/backend/src/domain/  → expect 0 results
+#   query "drizzle-orm" in packages/backend/src/domain/  → expect 0 results
+#   query ": any" in packages/backend/src/domain/  → expect 0 results
 ```
 
 **Pass criteria**: ALL commands succeed, 0 violations.

@@ -4,11 +4,13 @@ import { DatabaseModule } from './infrastructure/database/database.module';
 import { AiModule } from './infrastructure/ai/ai.module';
 import { ExternalApiModule } from './infrastructure/external-api/external-api.module';
 import { FileStorageModule } from './infrastructure/file-storage/file-storage.module';
+import { QueueModule } from './infrastructure/queue/queue.module';
+import { ApplicationModule } from './application/application.module';
 import { HealthController } from './interface/http/health.controller';
 
 /**
  * Root application module.
- * Imports infrastructure modules and registers controllers.
+ * Imports infrastructure, queue, and application modules.
  */
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { HealthController } from './interface/http/health.controller';
     AiModule,
     ExternalApiModule,
     FileStorageModule,
+    QueueModule,
+    ApplicationModule,
   ],
   controllers: [HealthController],
 })

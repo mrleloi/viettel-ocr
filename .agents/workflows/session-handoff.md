@@ -81,6 +81,10 @@ For each item:
    - Follow .agents/workflows/create-action-guide.md
 
 7. Commit: "docs: session N handoff"
+
+8. 🚀 Auto-start next session (LAST step — do this AFTER everything else):
+   - Run: /end-session workflow
+   - This will open a new Antigravity session and prompt "do next session"
 ```
 
 ## Cross-Agent Handoff

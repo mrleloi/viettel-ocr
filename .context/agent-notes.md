@@ -1,6 +1,6 @@
 # Agent Notes (Persistent Memory)
 
-> Invoice Processing Tool MVP. Updated: 2026-04-07 (Session 6 complete).
+> Invoice Processing Tool MVP. Updated: 2026-04-07 (Session 8 complete).
 
 ## Project Knowledge
 
@@ -13,30 +13,32 @@
 
 ## Current Progress
 
-- **Phase**: Phase 2 — Infrastructure & Application (in progress)
+- **Phase**: Phase 2 — Infrastructure & Application (2.4b complete, all of Phase 2 done)
 - **Domain entities**: 8 implemented (Invoice, Schema, FingerprintRule, FieldDefinition, Batch, Product, SyncConflict, Mapping)
 - **Value objects**: 3 implemented (TaxId, Money, Confidence)
 - **Repository interfaces**: 8 created
 - **Repository implementations**: 8 Drizzle + SQLite repos
 - **Domain services**: 5 implemented (FingerprintService, ValidatorService, ConfidenceCalculator, FuzzyMatcher, PromptBuilder)
 - **External integrations**: 3 implemented (GeminiClient, ViettelProductClient, LocalFileStorage)
-- **Domain port interfaces**: 3 (IOcrService, IProductApiClient, IFileStorage)
-- **Use cases**: 0 implemented
+- **Domain port interfaces**: 4 (IOcrService, IProductApiClient, IFileStorage, IJobQueue)
+- **Infrastructure services**: SqliteJobQueue, QueueWorkerService
+- **Use cases**: 10 implemented (Upload, Process, Approve, Reject, Edit, CreateSchema, UpdateSchema, SyncProducts, CreateMapping, CreateExport)
+- **NestJS modules**: 7 (Config, Database, AI, ExternalApi, FileStorage, Queue, Application)
 - **API endpoints**: 0 implemented
 - **Frontend pages**: 0 implemented
-- **Tests**: 278 total (193 domain + 53 repo integration + 32 external integration, all passing)
-- **Next session**: Session 7 — Job Queue + Upload/Processing Use Cases
+- **Tests**: 361 total (193 domain + 85 infra + 83 application+queue, all passing)
+- **Next session**: Session 9 — REST Controllers + DTOs + OpenAPI spec
 
 ## Bounded Contexts
 
 | Context | Entities | Services | Status |
 |---------|----------|----------|--------|
-| INTAKE | Batch ✅, Invoice ✅ | FilePreprocessor, DedupChecker | Entities + repos done |
-| PROCESSING | (uses Invoice ✅) | Pipeline, Classifier, Extractor, **ValidatorService ✅**, **ConfidenceCalculator ✅**, Router | Validator + ConfCalc done |
-| SCHEMA | Schema ✅, FingerprintRule ✅, FieldDefinition ✅ | **FingerprintService ✅**, **PromptBuilder ✅** | Complete ✅ |
-| CATALOG | Product ✅, SyncConflict ✅, Mapping ✅ | SyncService, **FuzzyMatcher ✅** | FuzzyMatcher done |
-| REVIEW | (uses Invoice ✅) | ReviewService, AuditService | Entities done |
-| OUTPUT | ExportJob, Notification | ExportService, NotificationService | Not started |
+| INTAKE | Batch ✅, Invoice ✅ | FilePreprocessor, DedupChecker | Entities + repos + upload use case done |
+| PROCESSING | (uses Invoice ✅) | Pipeline, Classifier, Extractor, **ValidatorService ✅**, **ConfidenceCalculator ✅**, Router | Process use case done |
+| SCHEMA | Schema ✅, FingerprintRule ✅, FieldDefinition ✅ | **FingerprintService ✅**, **PromptBuilder ✅** | CRUD use cases done ✅ |
+| CATALOG | Product ✅, SyncConflict ✅, Mapping ✅ | SyncService ✅, **FuzzyMatcher ✅** | Sync + Mapping use cases done ✅ |
+| REVIEW | (uses Invoice ✅) | **Approve ✅**, **Reject ✅**, **Edit ✅** | Use cases done ✅ |
+| OUTPUT | Export ✅ | **CreateExport ✅** | Export use case done ✅ |
 
 ## Learned Rules
 
@@ -106,6 +108,35 @@
 - Guide must pass "fresh agent test": could an agent with ZERO prior context execute it?
 - **MUST update `tasks/progress.md`** at session end — this was missed in Session 3 (caught in verification)
 - **Root cause of test failure at verify**: `npx jest` at monorepo root has no Jest config → transform fails. Must use `npm test` (root) or `npx jest` (backend dir). All config docs use bash syntax which breaks on PowerShell.
+
+### Use Case Patterns (Session 7)
+- Use cases live in `src/application/{context}/` — one class per use case with `execute()` method
+- Inject domain repos via DI tokens: `@Inject('IBatchRepository')`
+- Domain services (FingerprintService, ValidatorService, ConfidenceCalculator, PromptBuilder) are **stateless** — instantiate directly in the use case constructor, NOT via NestJS DI
+- Input/Output are **DTOs** (plain readonly objects), NOT entities
+- Use cases orchestrate domain services + repos — no business logic inside use case
+- Test use cases with **mocked repos/services** (unit tests), not integration tests
+
+### Queue Patterns (Session 7)
+- `IJobQueue` domain port in `domain/shared/job-queue.ts`; implementation in `infrastructure/queue/`
+- SQLite-backed queue — NO Redis, NO BullMQ
+- `BetterSQLite3Database<any>` needed for DI type compatibility
+- QueueWorkerService uses `setInterval` polling with `processing` guard against concurrent execution
+- Crash recovery: `resetStaleJobs()` on module init resets `processing` → `pending`
+
+### Type Gotchas (Session 7)
+- `LineItemProps` (shared package) requires `vatRate: number | null`, `vatAmount: number | null`, `totalWithVat: number | null` — not just basic fields
+- `name: string` (NOT nullable) in LineItemProps; use `''` as fallback
+- `ClassificationMethod` type from shared package: `'frontend_hint' | 'fingerprint' | 'llm' | 'manual'`
+
+### Type Gotchas (Session 8)
+- `InvoiceType` typed union: `'original' | 'adjustment' | 'replacement'` — NOT free-form string
+- `Product.markSynced(externalId: string)` — requires externalId argument
+- `FingerprintRule` valid ruleTypes: `'mst_exact' | 'keyword' | 'symbol_regex' | 'custom'`
+- `InvoiceProps` is a typed interface — cannot cast to `Record<string, unknown>` directly. Use getter properties instead
+- When editing invoice extracted data: must call `setExtractedData()` then `markAsNeedsReview()` to preserve status
+- `ExtractedDataProps.schemaId` is `string` (non-null) but `InvoiceProps.schemaId` is `string | null` — must provide fallback
+- `ExtractedDataProps.classificationConfidence` is `number` not `number | null` — must provide fallback
 
 ## Key Files
 

@@ -1,6 +1,6 @@
 # Progress Tracker
 
-> Last updated: 2026-04-07 (Session 6 complete)
+> Last updated: 2026-04-07 (Session 7 complete)
 
 ## Phase 1: Foundation & Domain Core ✅ COMPLETE
 
@@ -17,8 +17,9 @@
 |------|------------|--------|---------|-------|
 | 2.1 | Database repos (Drizzle implementations) | ✅ Done | 5 | 8 repos + 53 integration tests, 246 total |
 | 2.2 | External integrations (Gemini, Viettel, FileStorage) | ✅ Done | 6 | 3 port interfaces + 3 implementations + 32 tests, 278 total |
-| 2.3 | Job Queue | ⬜ Not started | 7 | |
-| 2.4 | Application use cases | ⬜ Not started | 7-8 | |
+| 2.3 | Job Queue | ✅ Done | 7 | SqliteJobQueue + QueueWorker, 24 tests |
+| 2.4a | Upload + Processing use cases | ✅ Done | 7 | UploadBatch + ProcessInvoice, 20 tests |
+| 2.4b | Remaining use cases (Schema, Review, Export) | ⬜ Not started | 8 | |
 
 ## Phase 3: Interface Layer (API)
 
@@ -58,10 +59,12 @@
 | Metric | Current | Target |
 |--------|---------|--------|
 | Domain tests | 193 | 100-200 |
-| Integration tests | 85 | 30-100 |
+| Infrastructure tests | 109 | 30-100 |
+| Application tests | 20 | 20-50 |
 | E2E tests | 0 | 5-10 |
-| Total source files | ~88 | ~200 |
-| Sessions completed | 6 | 15 |
+| Total tests | 322 | 300+ |
+| Total source files | ~100 | ~200 |
+| Sessions completed | 7 | 15 |
 
 ## Session Log
 
@@ -74,3 +77,4 @@
 | 4 | 2026-04-07 | Antigravity | ConfidenceCalculator + FuzzyMatcher + PromptBuilder (193 tests) | Composite scoring behavior, test assertion patterns | Session 5: database repos |
 | 5 | 2026-04-07 | Antigravity | 8 Drizzle repos + test helper + NestJS module wiring (246 tests) | FK constraints in tests, table name matching | Session 6: external integrations |
 | 6 | 2026-04-07 | Antigravity | 3 domain ports + GeminiClient + ViettelProductClient + LocalFileStorage + 3 NestJS modules (278 tests) | ConfigModule @Global + class injection, fake timer issues | Session 7: job queue + use cases |
+| 7 | 2026-04-07 | Antigravity | IJobQueue + SqliteJobQueue + UploadBatch + ProcessInvoice + QueueWorker + 2 modules (322 tests) | LineItemProps vatRate fields, stateless domain services pattern | Session 8: remaining use cases |

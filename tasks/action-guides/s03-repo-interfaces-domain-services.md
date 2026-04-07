@@ -10,8 +10,8 @@
 
 Before starting, verify:
 - [ ] Previous session completed: Session 2 — Domain Entities & Value Objects → check `.context/session-handoff.md`
-- [ ] Build passing: `cd invoice-tool/packages/backend && npx tsc --noEmit` → 0 errors
-- [ ] Tests passing: `cd invoice-tool && npm test -- --bail` → all 140 green
+- [ ] Build passing: `npx tsc --noEmit` (from `packages/backend/`) → 0 errors
+- [ ] Tests passing: `npx jest --bail` (from `packages/backend/`) → all 140 green
 - [ ] Required files exist:
   - `packages/backend/src/domain/shared/domain-error.ts`
   - `packages/backend/src/domain/shared/identifier.ts`
@@ -137,7 +137,7 @@ export interface IInvoiceRepository {
 }
 ```
 
-**Verify**: `cd invoice-tool/packages/backend && npx tsc --noEmit` → 0 errors
+**Verify** (from `packages/backend/`): `npx tsc --noEmit` → 0 errors
 
 ---
 
@@ -204,7 +204,7 @@ interface FingerprintRuleData {
 8. ❌ Error: Invalid regex → handles gracefully (no throw)
 9. ❌ Error: Empty OCR text → returns no match
 
-**Verify**: `cd invoice-tool && npx jest --testPathPattern="fingerprint.service" --bail`
+**Verify** (from `packages/backend/`): `npx jest --testPathPattern="fingerprint.service" --bail`
 
 ---
 
@@ -288,7 +288,7 @@ interface ExtractedInvoiceData {
 12. ❌ Error: Invalid VAT rate → error
 13. ❌ Error: No line items → error
 
-**Verify**: `cd invoice-tool && npx jest --testPathPattern="validator.service" --bail`
+**Verify** (from `packages/backend/`): `npx jest --testPathPattern="validator.service" --bail`
 
 ---
 
@@ -308,18 +308,21 @@ After all tests pass, ensure barrel exports:
 
 Run ALL of these before claiming done:
 
-```bash
-# Build
-cd invoice-tool/packages/backend && npx tsc --noEmit
+> ⚠️ **OS**: Windows + PowerShell. Do NOT use bash `&&` or `grep -r | wc -l`.
 
-# Tests (all — including Session 2's 140 + new ones)
-cd invoice-tool && npm test -- --bail
+```powershell
+# Build — from packages/backend/ directory
+npx tsc --noEmit
 
-# Architecture check (domain layer purity)
-grep -r "@nestjs" packages/backend/src/domain/ | wc -l          # expect 0
-grep -r "drizzle-orm" packages/backend/src/domain/ | wc -l      # expect 0
-grep -r ": any" packages/backend/src/domain/ | wc -l            # expect 0
-grep -r "import.*from.*infrastructure" packages/backend/src/domain/ | wc -l  # expect 0
+# Tests — from packages/backend/ directory
+npx jest --bail
+# ⚠️ NEVER run `npx jest` from monorepo root — no jest config there
+
+# Architecture checks — use grep_search tool:
+#   query "@nestjs" in packages/backend/src/domain/  → expect 0 results
+#   query "drizzle-orm" in packages/backend/src/domain/  → expect 0 results
+#   query ": any" in packages/backend/src/domain/  → expect 0 results
+#   query "from.*infrastructure" (regex) in packages/backend/src/domain/  → expect 0 results
 ```
 
 **Pass criteria**: ALL commands succeed, 0 violations.

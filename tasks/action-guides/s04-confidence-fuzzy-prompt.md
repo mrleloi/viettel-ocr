@@ -10,8 +10,8 @@
 
 Before starting, verify:
 - [ ] Previous session completed: Session 3 — Repository Interfaces + FingerprintService + ValidatorService → check `.context/session-handoff.md`
-- [ ] Build passing: `cd invoice-tool/packages/backend && npx tsc --noEmit` → 0 errors
-- [ ] Tests passing: `cd invoice-tool/packages/backend && npx jest --bail` → all 163 green
+- [ ] Build passing: `npx tsc --noEmit` (from `packages/backend/`) → 0 errors
+- [ ] Tests passing: `npx jest --bail` (from `packages/backend/`) → all 163 green
 - [ ] Required files exist:
   - `packages/backend/src/domain/processing/validator.service.ts`
   - `packages/backend/src/domain/schema/fingerprint.service.ts`
@@ -154,7 +154,7 @@ interface ConfidenceResult {
 8. ❌ Error: Heavy penalties → score clamped at 0.0 (never negative)
 9. ❌ Error: Empty fieldConfidences → extraction quality = 0
 
-**Verify**: `cd invoice-tool/packages/backend && npx jest --testPathPattern="confidence-calculator" --bail`
+**Verify** (from `packages/backend/`): `npx jest --testPathPattern="confidence-calculator" --bail`
 
 ---
 
@@ -215,7 +215,7 @@ interface FuzzyMatchOptions {
 8. ❌ Error: Empty product list → empty results
 9. ❌ Error: Empty search query → empty results
 
-**Verify**: `cd invoice-tool/packages/backend && npx jest --testPathPattern="fuzzy-matcher" --bail`
+**Verify** (from `packages/backend/`): `npx jest --testPathPattern="fuzzy-matcher" --bail`
 
 ---
 
@@ -276,7 +276,7 @@ interface BuiltPrompt {
 7. ❌ Error: Empty field list → still produces valid prompt
 8. ❌ Error: Unknown schema mode with empty schemas → still produces valid prompt
 
-**Verify**: `cd invoice-tool/packages/backend && npx jest --testPathPattern="prompt-builder" --bail`
+**Verify** (from `packages/backend/`): `npx jest --testPathPattern="prompt-builder" --bail`
 
 ---
 
@@ -293,18 +293,21 @@ After all tests pass, update barrel exports:
 
 Run ALL of these before claiming done:
 
-```bash
-# Build
-cd invoice-tool/packages/backend && npx tsc --noEmit
+> ⚠️ **OS**: Windows + PowerShell. Do NOT use bash `&&` or `grep -r | wc -l`.
 
-# Tests (all — including Session 3's 163 + new ones)
-cd invoice-tool/packages/backend && npx jest --bail
+```powershell
+# Build — from packages/backend/ directory
+npx tsc --noEmit
 
-# Architecture check (domain layer purity)
-grep -r "@nestjs" packages/backend/src/domain/ | wc -l          # expect 0
-grep -r "drizzle-orm" packages/backend/src/domain/ | wc -l      # expect 0
-grep -r ": any" packages/backend/src/domain/ | wc -l            # expect 0
-grep -r "import.*from.*infrastructure" packages/backend/src/domain/ | wc -l  # expect 0
+# Tests — from packages/backend/ directory
+npx jest --bail
+# ⚠️ NEVER run `npx jest` from monorepo root — no jest config there
+
+# Architecture checks — use grep_search tool:
+#   query "@nestjs" in packages/backend/src/domain/  → expect 0 results
+#   query "drizzle-orm" in packages/backend/src/domain/  → expect 0 results
+#   query ": any" in packages/backend/src/domain/  → expect 0 results
+#   query "from.*infrastructure" (regex) in packages/backend/src/domain/  → expect 0 results
 ```
 
 **Pass criteria**: ALL commands succeed, 0 violations.

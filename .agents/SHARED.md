@@ -3,6 +3,9 @@
 > Both Claude Code (Architect) and Antigravity (Developer) MUST read this file.
 > Agent-specific configs: `CLAUDE.md` (Architect) | `.gemini/AGENTS.md` (Developer)
 
+> ⚠️ **OS**: Windows 11 + PowerShell. Bash `&&` / `grep -r` / `wc -l` / `bash *.sh` do NOT work.
+> Use separate commands, `Select-String`, or built-in agent tools (`grep_search`, `run_command`).
+
 ---
 
 ## Skill Router (Universal)

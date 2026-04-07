@@ -1,6 +1,6 @@
 # Agent Notes (Persistent Memory)
 
-> Invoice Processing Tool MVP. Updated: 2026-04-07 (Session 3 complete).
+> Invoice Processing Tool MVP. Updated: 2026-04-07 (Session 6 complete).
 
 ## Project Knowledge
 
@@ -13,25 +13,28 @@
 
 ## Current Progress
 
-- **Phase**: Phase 1 — Foundation & Domain Core
+- **Phase**: Phase 2 — Infrastructure & Application (in progress)
 - **Domain entities**: 8 implemented (Invoice, Schema, FingerprintRule, FieldDefinition, Batch, Product, SyncConflict, Mapping)
 - **Value objects**: 3 implemented (TaxId, Money, Confidence)
-- **Repository interfaces**: 8 created (IInvoiceRepository, IBatchRepository, ISchemaRepository, IFingerprintRuleRepository, IFieldDefinitionRepository, IProductRepository, ISyncConflictRepository, IMappingRepository)
-- **Domain services**: 2 implemented (FingerprintService, ValidatorService)
+- **Repository interfaces**: 8 created
+- **Repository implementations**: 8 Drizzle + SQLite repos
+- **Domain services**: 5 implemented (FingerprintService, ValidatorService, ConfidenceCalculator, FuzzyMatcher, PromptBuilder)
+- **External integrations**: 3 implemented (GeminiClient, ViettelProductClient, LocalFileStorage)
+- **Domain port interfaces**: 3 (IOcrService, IProductApiClient, IFileStorage)
 - **Use cases**: 0 implemented
 - **API endpoints**: 0 implemented
 - **Frontend pages**: 0 implemented
-- **Tests**: 163 domain tests (all passing)
-- **Next session**: Session 4 — ConfidenceCalculator + FuzzyMatcher + PromptBuilder
+- **Tests**: 278 total (193 domain + 53 repo integration + 32 external integration, all passing)
+- **Next session**: Session 7 — Job Queue + Upload/Processing Use Cases
 
 ## Bounded Contexts
 
 | Context | Entities | Services | Status |
 |---------|----------|----------|--------|
 | INTAKE | Batch ✅, Invoice ✅ | FilePreprocessor, DedupChecker | Entities + repos done |
-| PROCESSING | (uses Invoice ✅) | Pipeline, Classifier, Extractor, **ValidatorService ✅**, ConfidenceCalc, Router | Validator done |
-| SCHEMA | Schema ✅, FingerprintRule ✅, FieldDefinition ✅ | **FingerprintService ✅**, PromptBuilder | Fingerprint done |
-| CATALOG | Product ✅, SyncConflict ✅, Mapping ✅ | SyncService, FuzzyMatcher | Entities + repos done |
+| PROCESSING | (uses Invoice ✅) | Pipeline, Classifier, Extractor, **ValidatorService ✅**, **ConfidenceCalculator ✅**, Router | Validator + ConfCalc done |
+| SCHEMA | Schema ✅, FingerprintRule ✅, FieldDefinition ✅ | **FingerprintService ✅**, **PromptBuilder ✅** | Complete ✅ |
+| CATALOG | Product ✅, SyncConflict ✅, Mapping ✅ | SyncService, **FuzzyMatcher ✅** | FuzzyMatcher done |
 | REVIEW | (uses Invoice ✅) | ReviewService, AuditService | Entities done |
 | OUTPUT | ExportJob, Notification | ExportService, NotificationService | Not started |
 
@@ -41,17 +44,55 @@
 - FingerprintService uses plain data interface `FingerprintRuleData` instead of entity directly — decouples service from entity internals
 - ValidatorService uses `ExtractedInvoiceData` plain interface — not the Invoice entity
 - Domain services are stateless: no constructor DI, receive all data as method parameters
+- ConfidenceCalculator uses `ConfidenceInput` plain interface with all scoring factors
+- FuzzyMatcher uses `ProductData` plain interface — not the Product entity
+- PromptBuilder uses `SchemaData` and `FieldData` plain interfaces — not entity classes
+- FuzzyMatcher composite scoring: 0.5 × Jaccard + 0.3 × LCS + 0.2 × brand_bonus — exact single-word match without brand = 0.8 (not 1.0)
 
 ### NestJS / Drizzle
-- (Will add patterns discovered during scaffolding)
+- **DI Token Convention**: Domain interface name as string token → `{ provide: 'ISchemaRepository', useClass: SchemaRepositoryImpl }`
+- **Inject DB**: `@Inject(DATABASE_TOKEN)` (exported from `connection.ts`)
+- **Upsert Pattern**: `db.insert(table).values(data).onConflictDoUpdate({ target: table.id, set: data })`
+- **JSON Fields**: Store as TEXT with `JSON.stringify` on write, `JSON.parse` on read (e.g., lineItems)
+- **Table names**: Drizzle `sqliteTable('name', ...)` uses the string arg as SQL table name — test DDL must match exactly
+- **FK enforcement**: SQLite FK enabled via `sqlite.pragma('foreign_keys = ON')` — must set up parent records in tests
+- **Test DB**: `createTestDb()` returns fresh in-memory SQLite with all tables — no cleanup needed
+- **ConfigModule is @Global() + exports class directly** — use direct class injection, NOT `@Inject('string-token')` for EnvConfigService
+- **NestJS module pattern**: Use `useExisting` to alias class to interface token: `{ provide: 'IOcrService', useExisting: GeminiClient }`
 
 ### Gemini API
-- (Will add prompt patterns discovered during integration)
+- PromptBuilder produces system + extraction prompt pair
+- Known schema mode: extraction-only with field list
+- Unknown schema mode: classification section + standard fields
+- Custom promptTemplate included if present, otherwise default
 
 ### Testing
 - Jest 30 is not compatible with ts-jest 29 — must use Jest 29.x
 - ts-jest max version is 29.4.9 (as of 2026-04)
 - IDE may show "Cannot find module" and "implicit any" lint errors in test files but `tsc --noEmit` and `jest` both pass — these are IDE TS server lag artifacts
+- `expect.stringContaining` inside `toContain()` doesn't work — use `array.some(p => p.includes(...))` pattern instead
+- **Mock global.fetch pattern**: `const mockFetch = jest.fn(); (global as Record<string, unknown>).fetch = mockFetch;` — works for GeminiClient + ViettelProductClient
+- **Fake timers + async retries are flaky** — use `createForTesting()` with 0ms baseDelay instead of fake timers
+- **File storage tests**: Use `os.tmpdir()` + `fs.mkdtemp()` for isolated temp dir per test — clean up in afterEach
+- Unused type imports (imported as values) cause TS6133 errors — only import types used in runtime expressions
+
+### OS & Shell (CRITICAL)
+- **OS**: Windows 11 — **Shell**: PowerShell
+- **Bash `&&` does NOT work** in PowerShell. Use `;` or separate commands
+- **Bash `grep -r`, `wc -l`** do NOT exist. Use `Select-String` or ripgrep `rg`, or use the `grep_search` tool
+- **Bash `bash scripts/*.sh`** — won't run. Use `node` scripts or PowerShell equivalents
+- Config docs (AGENTS.md, action guides, quality gates) use bash syntax — agent MUST translate to PowerShell
+
+### Correct Test/Build Commands
+
+| What | From monorepo root (`invoice-tool/`) | From backend (`packages/backend/`) |
+|------|--------------------------------------|-------------------------------------|
+| Run tests | `npm test` | `npx jest --bail` |
+| TypeScript check | `npm run typecheck` | `npx tsc --noEmit` |
+| Build | `npm run build` | `npx nest build` |
+
+> ⚠️ **NEVER run `npx jest` from monorepo root** — no Jest config there, all suites will fail with "cannot transform TypeScript"
+> The root `npm test` works because it delegates via `-w packages/backend`
 
 ### Session Management
 - Always read session-handoff.md FIRST
@@ -63,6 +104,8 @@
 - At session END, create action guide for NEXT session following SAME template
 - **Root cause of Session 1→2 gap**: Session 1 ran before r18-r20 existed. When Session 2 detected missing guide, agent created freeform notes instead of following the create-action-guide workflow/skill template. Fixed by inlining requirements into AGENTS.md r19 (7 sections, 11 checks, fresh-agent test).
 - Guide must pass "fresh agent test": could an agent with ZERO prior context execute it?
+- **MUST update `tasks/progress.md`** at session end — this was missed in Session 3 (caught in verification)
+- **Root cause of test failure at verify**: `npx jest` at monorepo root has no Jest config → transform fails. Must use `npm test` (root) or `npx jest` (backend dir). All config docs use bash syntax which breaks on PowerShell.
 
 ## Key Files
 

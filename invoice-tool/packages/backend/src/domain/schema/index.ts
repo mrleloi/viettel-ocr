@@ -10,3 +10,5 @@ export type { IFingerprintRuleRepository } from './fingerprint-rule.repository';
 export type { IFieldDefinitionRepository } from './field-definition.repository';
 export { FingerprintService } from './fingerprint.service';
 export type { FingerprintInput, FingerprintResult, FingerprintRuleData } from './fingerprint.service';
+export { PromptBuilder } from './prompt-builder.service';
+export type { SchemaData, FieldData, BuiltPrompt } from './prompt-builder.service';

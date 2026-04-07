@@ -10,6 +10,7 @@ Backend:   NestJS 10 + Drizzle ORM + SQLite (WAL mode)
 AI/OCR:    Gemini 2.0 Flash API
 Shared:    TypeScript types + OpenAPI generated client
 Mock:      Express server for Viettel Product API
+OS/Shell:  Windows 11 + PowerShell (bash syntax NOT supported)
 ```
 
 ## Monorepo

@@ -6,6 +6,7 @@
 
 You are **Claude Code**, the Architect agent for the Invoice Processing Tool MVP.
 **Stack**: Next.js 14 + React 19 + Tailwind + shadcn/ui | NestJS 10 + Drizzle ORM + SQLite | Gemini Flash API
+**OS/Shell**: Windows 11 + PowerShell — bash syntax (`&&`, `grep -r`, `wc -l`) does NOT work
 
 ---
 
@@ -62,11 +63,13 @@ You are **Claude Code**, the Architect agent for the Invoice Processing Tool MVP
 
 ```
 Gate 1 — Deterministic (per commit):
-  Backend:  tsc --noEmit && jest --bail
-  Frontend: tsc --noEmit && next build
+  Backend:  npx tsc --noEmit; npx jest --bail  (from packages/backend/)
+           OR: npm run typecheck; npm test     (from monorepo root)
+           ⚠️ NEVER npx jest from monorepo root
+  Frontend: npx tsc --noEmit (from packages/frontend/)
 
 Gate 2 — Spec-Code Alignment (per session):
-  Domain layer has zero @nestjs imports?
+  Domain layer has zero @nestjs imports? (use grep_search tool)
   Repository interfaces in domain, implementations in infrastructure?
   All use cases have integration tests?
 

@@ -4,8 +4,33 @@ import { createDatabase, DATABASE_TOKEN } from './connection';
 import * as path from 'path';
 import * as fs from 'fs';
 
+// Repository implementations
+import { SchemaRepositoryImpl } from './repositories/schema.repository.impl';
+import { FingerprintRuleRepositoryImpl } from './repositories/fingerprint-rule.repository.impl';
+import { FieldDefinitionRepositoryImpl } from './repositories/field-definition.repository.impl';
+import { BatchRepositoryImpl } from './repositories/batch.repository.impl';
+import { ProductRepositoryImpl } from './repositories/product.repository.impl';
+import { SyncConflictRepositoryImpl } from './repositories/sync-conflict.repository.impl';
+import { MappingRepositoryImpl } from './repositories/mapping.repository.impl';
+import { InvoiceRepositoryImpl } from './repositories/invoice.repository.impl';
+
 /**
- * Database module — provides the Drizzle DB instance via DI.
+ * Repository providers — map domain interface tokens to concrete implementations.
+ * Use cases inject via the token string (e.g., @Inject('ISchemaRepository')).
+ */
+const repositoryProviders = [
+  { provide: 'ISchemaRepository', useClass: SchemaRepositoryImpl },
+  { provide: 'IFingerprintRuleRepository', useClass: FingerprintRuleRepositoryImpl },
+  { provide: 'IFieldDefinitionRepository', useClass: FieldDefinitionRepositoryImpl },
+  { provide: 'IBatchRepository', useClass: BatchRepositoryImpl },
+  { provide: 'IProductRepository', useClass: ProductRepositoryImpl },
+  { provide: 'ISyncConflictRepository', useClass: SyncConflictRepositoryImpl },
+  { provide: 'IMappingRepository', useClass: MappingRepositoryImpl },
+  { provide: 'IInvoiceRepository', useClass: InvoiceRepositoryImpl },
+];
+
+/**
+ * Database module — provides the Drizzle DB instance and all repository implementations via DI.
  * Creates the data directory and initializes tables on startup.
  */
 @Global()
@@ -38,7 +63,8 @@ import * as fs from 'fs';
       },
       inject: [EnvConfigService],
     },
+    ...repositoryProviders,
   ],
-  exports: [DATABASE_TOKEN],
+  exports: [DATABASE_TOKEN, ...repositoryProviders.map(p => p.provide)],
 })
 export class DatabaseModule {}

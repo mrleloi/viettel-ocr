@@ -6,6 +6,7 @@
 
 You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP.
 **Stack**: Next.js 14 + React 19 + Tailwind + shadcn/ui | NestJS 10 + Drizzle ORM + SQLite | Gemini Flash API
+**OS/Shell**: Windows 11 + PowerShell — bash syntax (`&&`, `grep -r`, `wc -l`) does NOT work
 
 ---
 
@@ -70,7 +71,7 @@ You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP
 6. No raw SQL in domain/application layers — use repository interfaces
 7. No hardcoded config — use ConfigService or `config.env`
 8. No skipping tests — domain + integration tests required per feature
-9. **No completion claims without fresh verification** — run `tsc --noEmit && jest --bail` BEFORE saying "done"
+9. **No completion claims without fresh verification** — run `npx tsc --noEmit` then `npx jest --bail` (from `packages/backend/`) OR `npm test` (from monorepo root) BEFORE saying "done". ⚠️ NEVER run `npx jest` from monorepo root (no jest config there)
 10. **Debugging: root cause first** — 3 failed fixes → question architecture
 11. **Props interfaces live in component files** (frontend) — API client generated from OpenAPI
 12. **Server Components by default** — Client only for: file upload, real-time progress, interactive editors
@@ -78,6 +79,8 @@ You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP
 14. `import type` for type-only imports
 15. Conventional commits: `test: add specs for [X]` → `feat: implement [X]` → `refactor: clean up [X]`
 16. **No implementation without action guide** — check `tasks/action-guides/s{NN}-*.md` BEFORE any code. If no guide exists → STOP → create one first using `.agents/workflows/create-action-guide.md`
+17. **Always update `tasks/progress.md`** at session end — mark completed steps ✅, partial steps 🔄. This was missed in Session 3.
+18. **Translate bash commands to PowerShell** — all config docs use bash syntax. Agent must adapt: separate `&&` into individual commands, use `grep_search` tool instead of `grep -r | wc -l`
 
 ---
 
@@ -232,14 +235,16 @@ export class ProcessInvoiceUseCase {
 ## Quality Self-Check (BEFORE saying "done")
 
 ```
-□ tsc --noEmit passes (both backend and frontend if touched)
-□ jest --bail passes (all tests green)
-□ Domain layer: grep -r "@nestjs" packages/backend/src/domain/ returns 0 hits
-□ No console.log: grep -r "console.log" packages/backend/src/ returns 0 in production files
-□ No any: grep -r ": any" packages/backend/src/domain/ returns 0
+□ tsc --noEmit passes (from packages/backend/ — or npm run typecheck from root)
+□ jest --bail passes (from packages/backend/ — or npm test from root)
+   ⚠️ NEVER npx jest from monorepo root
+□ Domain layer: grep_search "@nestjs" in packages/backend/src/domain/ → 0 hits
+□ No console.log: grep_search "console.log" in packages/backend/src/ (exclude spec) → 0
+□ No any: grep_search ": any" in packages/backend/src/domain/ → 0
 □ Every new file has at least 1 test
 □ Session handoff updated
 □ Agent notes updated
+□ tasks/progress.md updated ← DO NOT SKIP
 □ Conventional commit message used
 ```
 

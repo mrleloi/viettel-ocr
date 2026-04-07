@@ -83,8 +83,8 @@ Use the template below. **Every section is mandatory** — do not skip any.
 
 Before starting, verify:
 - [ ] Previous session completed: {session N-1 title} → check `.context/session-handoff.md`
-- [ ] Build passing: `cd packages/backend && npx tsc --noEmit` → 0 errors
-- [ ] Tests passing: `npm test -- --bail` → all green
+- [ ] Build passing: `npx tsc --noEmit` (from `packages/backend/`) → 0 errors
+- [ ] Tests passing: `npx jest --bail` (from `packages/backend/`) OR `npm test` (from monorepo root) → all green
 - [ ] Required files exist: {list files that must exist from previous sessions}
 
 **If any check fails → STOP. Fix before proceeding.**
@@ -157,7 +157,7 @@ Reference: `tasks/05-data-flow-design.md` § {flow name}
 |------|-------|-----------|
 | {name} | {logic} | {what to test} |
 
-**Verify**: `jest --testPathPattern="{pattern}" --bail`
+**Verify** (from `packages/backend/`): `npx jest --testPathPattern="{pattern}" --bail`
 
 ---
 
@@ -173,21 +173,23 @@ Reference: `tasks/05-data-flow-design.md` § {flow name}
 
 ## 4. Quality Gate
 
+> ⚠️ **OS**: Windows + PowerShell. Do NOT use bash `&&` or `grep -r | wc -l`.
+
 Run ALL of these before claiming done:
 
-```bash
-# Build
-cd packages/backend && npx tsc --noEmit
+```powershell
+# Build — from packages/backend/ directory
+npx tsc --noEmit
 
-# Tests
-npm test -- --bail
+# Tests — from packages/backend/ directory (OR `npm test` from monorepo root)
+npx jest --bail
+# ⚠️ NEVER run `npx jest` from monorepo root — no jest config there
 
-# Architecture (if domain work)
-grep -r "@nestjs" packages/backend/src/domain/ | wc -l  # expect 0
-grep -r ": any" packages/backend/src/domain/ | wc -l    # expect 0
-
-# Drift check (if significant changes)
-bash .agents/scripts/drift-check.sh
+# Architecture (if domain work) — use grep_search tool:
+#   query "@nestjs" in packages/backend/src/domain/  → expect 0 results
+#   query "drizzle-orm" in packages/backend/src/domain/  → expect 0 results
+#   query ": any" in packages/backend/src/domain/  → expect 0 results
+#   query "from.*infrastructure" (regex) in packages/backend/src/domain/  → expect 0 results
 ```
 
 **Pass criteria**: ALL commands succeed, 0 violations.

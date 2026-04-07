@@ -1,0 +1,18 @@
+You are Claude code.
+Then execute Session 4
+
+
+You are Antigravity.
+Then execute Session 4
+
+
+You are Antigravity.
+Check Session 4, it seems not correct. If issues, fix them.
+
+Then if issues, do self-analyze to figured out why you hit the issue, why its still issues, is it because current agent configs/settings are not good enough/wrong, then you follow the wrong way, or they are good but you are not follow because some reason. Then, decide to update agent configs/settings, like consitution (.claude.json, ARCHITECTURE.md, CLAUDE.md, sub module consitution files), .agents (skills, workflows), .claude (commands, settings, rules), .context, .gemini, etc... if needed based on what you learned.
+
+
+Kiểm tra lại execution plan hiện tại và agent config/settings để đảm bảo chúng thực sự được tự động sử dụng một cách dễ dàng cho các agent, ví dụ khi tôi prompt "you are antigravity, do session 6.5" thì agent tự động tìm kiếm được đủ thông tin skills/workflow/command/rule/context/know ledge, etc... cho việc thực hiện prompt, chứ không phải các config/settings chỉ được tạo ra mà không bao giờ được thực sự sử dụng.
+
+
+Những thông tin agent config/settings mà chỉ phục vụ cho các phase trước cũng có thể bỏ ra bớt, vì hiện tại phase mới nhất là phase 5e, đã hoàn thành full flow implement home page, mục tiêu là hoàn thành các page còn lại, nên nếu có thông tin stale không cần thiết cho việc implement các page còn lại thì có thể bỏ bớt ra để tiết kiệm token và tránh làm loãng context khiến agent phải đọc quá nhiều thông tin không cần thiết

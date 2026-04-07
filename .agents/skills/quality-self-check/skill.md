@@ -6,6 +6,8 @@ context-load: always
 
 # Quality Self-Check Skill
 
+> ⚠️ **OS**: Windows + PowerShell. Do NOT use bash `&&` / `grep -r` / `wc -l`. Use agent tools or separate commands.
+
 ## Verification Iron Law
 
 > **NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE.**
@@ -29,35 +31,49 @@ in THIS conversation and seen the output with your own eyes.
 ## Pre-Completion Checklist
 
 ### 1. Build & Types
-```bash
-# Backend
-cd packages/backend && npx tsc --noEmit   # 0 errors
 
-# Frontend (if modified)
-cd packages/frontend && npx tsc --noEmit  # 0 errors
+**From `packages/backend/` directory:**
+```powershell
+npx tsc --noEmit   # 0 errors
+```
+
+**Or from monorepo root (`invoice-tool/`):**
+```powershell
+npm run typecheck  # delegates to backend
+```
+
+**Frontend** (if modified, from `packages/frontend/`):
+```powershell
+npx tsc --noEmit
 ```
 
 ### 2. Tests
-```bash
-# All tests
-npm test -- --bail
 
-# Specific module (during development)
-npm test -- --testPathPattern="invoice" --bail
+**From `packages/backend/` directory:**
+```powershell
+npx jest --bail
+# Specific module:
+npx jest --testPathPattern="invoice" --bail
 ```
+
+**Or from monorepo root:**
+```powershell
+npm test
+```
+
+> ⚠️ **NEVER** run `npx jest` from monorepo root — no Jest config there, all suites fail.
 
 ### 3. Architecture Compliance
-```bash
-# Domain layer purity — MUST return 0 results
-grep -r "@nestjs" packages/backend/src/domain/ || echo "CLEAN"
-grep -r "import.*from.*infrastructure" packages/backend/src/domain/ || echo "CLEAN"
 
-# No any in domain
-grep -r ": any" packages/backend/src/domain/ || echo "CLEAN"
+**Use the `grep_search` agent tool** (preferred — works on all OS):
 
-# No console.log in production
-grep -rn "console.log" packages/backend/src/ --include="*.ts" | grep -v ".spec.ts" | grep -v ".test.ts" || echo "CLEAN"
-```
+| Check | grep_search query | Search path | Expect |
+|-------|-------------------|-------------|--------|
+| No @nestjs in domain | `@nestjs` | `packages/backend/src/domain` | 0 results |
+| No drizzle in domain | `drizzle-orm` | `packages/backend/src/domain` | 0 results |
+| No infra imports in domain | `from.*infrastructure` (regex) | `packages/backend/src/domain` | 0 results |
+| No `any` in domain | `: any` | `packages/backend/src/domain` | 0 results |
+| No console.log in prod | `console.log` | `packages/backend/src` (exclude `*.spec.ts`) | 0 results |
 
 ### 4. Code Quality
 - [ ] No `any` types — use explicit interfaces
@@ -99,6 +115,6 @@ grep -rn "console.log" packages/backend/src/ --include="*.ts" | grep -v ".spec.t
 
 ✅ **REQUIRED patterns**:
 - Tests FIRST → verify FAIL → implement → verify PASS
-- Fresh `tsc --noEmit && jest --bail` output before every "done" claim
+- Fresh `npx tsc --noEmit; npx jest --bail` from `packages/backend/` (or `npm test` from root) before every "done" claim
 - PARTIAL if any gate fails — with explicit failure list
 - Progress counters increment ONLY when ALL gates pass

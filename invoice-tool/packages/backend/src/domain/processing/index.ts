@@ -5,3 +5,8 @@ export type {
   ValidationError,
   ValidationResult,
 } from './validator.service';
+export { ConfidenceCalculator } from './confidence-calculator.service';
+export type {
+  ConfidenceInput,
+  ConfidenceResult,
+} from './confidence-calculator.service';

@@ -19,7 +19,7 @@ context-load: always
 8. State plan BEFORE coding
 ```
 
-## Session End
+## Session End — COMPLETE ALL STEPS IN ORDER, THEN RUN THE SCRIPT
 
 ```
 1. Run quality gate: tsc --noEmit && jest --bail
@@ -34,8 +34,17 @@ context-load: always
 4. Update: .context/agent-notes.md (MANDATORY — not optional)
    - Progress section: ALL counters
    - Learned Rules: any new gotchas
-5. Commit: "docs: session N handoff"
+5. Create: next session's action guide (tasks/action-guides/s{N+1}-*.md)
+6. ⛔⛔⛔ RUN THIS EXACT COMMAND — YOUR SESSION IS NOT DONE WITHOUT IT ⛔⛔⛔
 ```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "c:\htdocs\viettel-ocr\scripts\complete-session.ps1" -Message "do next session" -NewSessionDelay 5
+```
+
+⚠️ DO NOT report "session complete" to user BEFORE running the command above.
+⚠️ The command validates all artifacts AND spawns the next session.
+⚠️ If you wrote a walkthrough but did NOT run this command, THE SESSION IS INCOMPLETE.
 
 ## Handoff Template
 

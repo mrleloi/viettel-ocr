@@ -1,0 +1,67 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Điều hướng chính" [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: V
+        - generic [ref=e6]:
+          - generic [ref=e7]: Viettel OCR
+          - generic [ref=e8]: Xử lý hóa đơn tự động
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: Chính
+          - link "Tổng quan" [ref=e12] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e13]: 📊
+            - generic [ref=e14]: Tổng quan
+          - link "Tải lên" [ref=e15] [cursor=pointer]:
+            - /url: /upload
+            - generic [ref=e16]: 📤
+            - generic [ref=e17]: Tải lên
+          - link "Kiểm duyệt Mục cần xử lý" [ref=e18] [cursor=pointer]:
+            - /url: /review
+            - generic [ref=e19]: ✅
+            - generic [ref=e20]: Kiểm duyệt
+            - generic "Mục cần xử lý" [ref=e21]: "0"
+        - generic [ref=e22]:
+          - generic [ref=e23]: Quản lý
+          - link "Mẫu hóa đơn" [ref=e24] [cursor=pointer]:
+            - /url: /schemas
+            - generic [ref=e25]: 📋
+            - generic [ref=e26]: Mẫu hóa đơn
+          - link "Sản phẩm" [ref=e27] [cursor=pointer]:
+            - /url: /products
+            - generic [ref=e28]: 📦
+            - generic [ref=e29]: Sản phẩm
+          - link "Ánh xạ SP" [ref=e30] [cursor=pointer]:
+            - /url: /mappings
+            - generic [ref=e31]: 🔗
+            - generic [ref=e32]: Ánh xạ SP
+        - generic [ref=e33]:
+          - generic [ref=e34]: Báo cáo
+          - link "Xuất dữ liệu" [ref=e35] [cursor=pointer]:
+            - /url: /exports
+            - generic [ref=e36]: 📁
+            - generic [ref=e37]: Xuất dữ liệu
+      - button "Thu gọn menu" [ref=e39] [cursor=pointer]:
+        - generic [ref=e40]: ◀
+        - generic [ref=e41]: Thu gọn
+    - generic [ref=e42]:
+      - banner [ref=e43]:
+        - generic [ref=e44]:
+          - button "Mở/đóng menu" [ref=e45] [cursor=pointer]: ☰
+          - heading "Tải hóa đơn" [level=1] [ref=e46]
+        - generic [ref=e47]:
+          - button "Thông báo" [ref=e48] [cursor=pointer]: 🔔
+          - generic "Tài khoản" [ref=e50] [cursor=pointer]: OP
+      - main [ref=e51]:
+        - button "Kéo thả file PDF hoặc ZIP vào đây" [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]: 📄
+          - generic [ref=e57]: Kéo thả file PDF hoặc ZIP vào đây
+          - generic [ref=e58]: hoặc Chọn file từ máy tính
+          - generic [ref=e59]:
+            - generic [ref=e60]: PDF
+            - generic [ref=e61]: ZIP
+            - generic [ref=e62]: tối đa 50MB
+  - button "Open Next.js Dev Tools" [ref=e68] [cursor=pointer]:
+    - img [ref=e69]
+  - alert [ref=e72]

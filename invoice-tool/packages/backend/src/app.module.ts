@@ -5,12 +5,12 @@ import { AiModule } from './infrastructure/ai/ai.module';
 import { ExternalApiModule } from './infrastructure/external-api/external-api.module';
 import { FileStorageModule } from './infrastructure/file-storage/file-storage.module';
 import { QueueModule } from './infrastructure/queue/queue.module';
-import { ApplicationModule } from './application/application.module';
-import { HealthController } from './interface/http/health.controller';
+import { InterfaceModule } from './interface/http/interface.module';
 
 /**
  * Root application module.
- * Imports infrastructure, queue, and application modules.
+ * Imports infrastructure, queue, and interface modules.
+ * InterfaceModule internally imports ApplicationModule.
  */
 @Module({
   imports: [
@@ -20,9 +20,7 @@ import { HealthController } from './interface/http/health.controller';
     ExternalApiModule,
     FileStorageModule,
     QueueModule,
-    ApplicationModule,
+    InterfaceModule,
   ],
-  controllers: [HealthController],
 })
 export class AppModule {}
-

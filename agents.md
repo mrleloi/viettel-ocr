@@ -61,6 +61,10 @@
 22. If stuck >3 attempts on same error → document blocker in handoff, move to next task
 23. If scope creep detected → defer to next session, document in handoff
 
+### Session Termination
+24. **⛔ ALWAYS run `scripts/complete-session.ps1` as the LAST action** — this validates ALL artifacts (handoff, progress, action guide, tests, build) then auto-spawns next session. YOUR SESSION IS NOT DONE until this script runs. The command:
+    `powershell -ExecutionPolicy Bypass -File "c:\htdocs\viettel-ocr\scripts\complete-session.ps1" -Message "do next session" -NewSessionDelay 5`
+
 ---
 
 ## Bounded Contexts (Quick Reference)
@@ -79,8 +83,8 @@
 ## Session Lifecycle
 
 ```
-Orient → Action Guide Gate → Plan → RED → GREEN → REFACTOR → Handoff
-  5%          (in Orient)     10%    25%    40%      10%        10%
+Orient → Action Guide Gate → Plan → RED → GREEN → REFACTOR → Handoff → Auto-Spawn
+  5%          (in Orient)     10%    25%    40%      10%        5%         5%
 ```
 
 Every session:
@@ -90,5 +94,6 @@ Every session:
 4. **Red**: Write test files, verify they fail
 5. **Green**: Implement minimum code to pass tests
 6. **Refactor**: Clean up, extract helpers, add JSDoc
-7. **Handoff**: Run full suite, write handoff document, create next session's action guide, commit
+7. **Handoff**: Run full suite, write handoff document, create next session's action guide
+8. **⛔ Auto-Spawn**: Run `scripts/complete-session.ps1` — validates + spawns (MANDATORY, rule 24). DO NOT skip.
 

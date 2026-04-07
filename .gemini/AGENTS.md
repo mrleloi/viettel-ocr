@@ -124,6 +124,9 @@ You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP
 10. Create action guide for NEXT session (if not already exists)
     - Follow .agents/workflows/create-action-guide.md
 11. Commit with conventional format
+12. ⛔ LAST STEP — Run complete-session script (MANDATORY, DO NOT SKIP):
+    powershell -ExecutionPolicy Bypass -File "c:\htdocs\viettel-ocr\scripts\complete-session.ps1" -Message "do next session" -NewSessionDelay 5
+    This validates ALL artifacts then auto-spawns next session. YOUR SESSION IS NOT DONE UNTIL THIS RUNS.
 ```
 
 ---

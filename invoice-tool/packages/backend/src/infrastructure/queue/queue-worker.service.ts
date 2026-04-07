@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Inject, Optional, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import type { IJobQueue } from '../../domain/shared/job-queue';
 import { ProcessInvoiceUseCase } from '../../application/processing/process-invoice.use-case';
 
@@ -25,8 +25,8 @@ export class QueueWorkerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject('IJobQueue') private readonly queue: IJobQueue,
     private readonly processInvoice: ProcessInvoiceUseCase,
-    pollIntervalMs?: number,
-    batchSize?: number,
+    @Optional() @Inject('POLL_INTERVAL_MS') pollIntervalMs?: number,
+    @Optional() @Inject('BATCH_SIZE') batchSize?: number,
   ) {
     this.pollIntervalMs = pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     this.batchSize = batchSize ?? DEFAULT_BATCH_SIZE;

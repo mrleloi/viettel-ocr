@@ -1,6 +1,6 @@
 # Progress Tracker
 
-> Last updated: 2026-04-07 (Session 7 complete)
+> Last updated: 2026-04-07 (Session 12 complete)
 
 ## Phase 1: Foundation & Domain Core ✅ COMPLETE
 
@@ -19,23 +19,23 @@
 | 2.2 | External integrations (Gemini, Viettel, FileStorage) | ✅ Done | 6 | 3 port interfaces + 3 implementations + 32 tests, 278 total |
 | 2.3 | Job Queue | ✅ Done | 7 | SqliteJobQueue + QueueWorker, 24 tests |
 | 2.4a | Upload + Processing use cases | ✅ Done | 7 | UploadBatch + ProcessInvoice, 20 tests |
-| 2.4b | Remaining use cases (Schema, Review, Export) | ⬜ Not started | 8 | |
+| 2.4b | Remaining use cases (Schema, Review, Export) | ✅ Done | 8 | 8 use cases, 39 tests |
 
 ## Phase 3: Interface Layer (API)
 
 | Step | Description | Status | Session | Notes |
 |------|------------|--------|---------|-------|
-| 3.1 | Controllers + DTOs + OpenAPI | ⬜ Not started | 9 | |
-| 3.2 | OpenAPI client generation | ⬜ Not started | 10 | |
+| 3.1 | Controllers + DTOs + OpenAPI | ✅ Done | 9 | 7 controllers, 17 DTOs, 30 tests |
+| 3.2 | OpenAPI client generation + typed API client | ✅ Done | 10 | Typed `apiClient` with 17 methods |
 
 ## Phase 4: Frontend
 
 | Step | Description | Status | Session | Notes |
 |------|------------|--------|---------|-------|
-| 4.1 | Layout & navigation | ⬜ Not started | 10 | |
-| 4.2 | Dashboard page | ⬜ Not started | 11 | |
-| 4.3 | Upload page | ⬜ Not started | 11 | |
-| 4.4 | Review queue + detail | ⬜ Not started | 12 | |
+| 4.1 | Layout & navigation | ✅ Done | 10 | AppShell + sidebar + header + 7 routes |
+| 4.2 | Dashboard page | ✅ Done | 11 | StatCard + RecentBatchesTable + ActivityFeed, real API data |
+| 4.3 | Upload page | ✅ Done | 11 | FileDropzone + UploadResult, drag & drop, progress bar |
+| 4.4 | Review queue + detail | ✅ Done | 12 | ReviewFilter + InvoiceTable + RejectDialog + detail page |
 | 4.5 | Schema management | ⬜ Not started | 13 | |
 | 4.6 | Mapping management | ⬜ Not started | 13 | |
 | 4.7 | Product management | ⬜ Not started | 14 | |
@@ -60,11 +60,12 @@
 |--------|---------|--------|
 | Domain tests | 193 | 100-200 |
 | Infrastructure tests | 109 | 30-100 |
-| Application tests | 20 | 20-50 |
+| Application tests | 59 | 20-50 |
+| Interface tests | 30 | 20-50 |
 | E2E tests | 0 | 5-10 |
-| Total tests | 322 | 300+ |
-| Total source files | ~100 | ~200 |
-| Sessions completed | 7 | 15 |
+| Total tests | 391 | 300+ |
+| Total source files | ~130 | ~200 |
+| Sessions completed | 12 | 15 |
 
 ## Session Log
 
@@ -78,3 +79,8 @@
 | 5 | 2026-04-07 | Antigravity | 8 Drizzle repos + test helper + NestJS module wiring (246 tests) | FK constraints in tests, table name matching | Session 6: external integrations |
 | 6 | 2026-04-07 | Antigravity | 3 domain ports + GeminiClient + ViettelProductClient + LocalFileStorage + 3 NestJS modules (278 tests) | ConfigModule @Global + class injection, fake timer issues | Session 7: job queue + use cases |
 | 7 | 2026-04-07 | Antigravity | IJobQueue + SqliteJobQueue + UploadBatch + ProcessInvoice + QueueWorker + 2 modules (322 tests) | LineItemProps vatRate fields, stateless domain services pattern | Session 8: remaining use cases |
+| 8 | 2026-04-07 | Antigravity | 8 use cases (Approve/Reject/Edit/CreateSchema/UpdateSchema/SyncProducts/CreateMapping/CreateExport) + ApplicationModule (361 tests) | InvoiceType typed union, Product.markSynced arg | Session 9: REST controllers |
+| 9 | 2026-04-07 | Antigravity | 7 controllers + 17 DTOs + InterfaceModule + 30 controller tests (391 tests) | supertest default import, overallConfidence getter, global prefix | Session 10: OpenAPI client + frontend |
+| 10 | 2026-04-07 | Antigravity | Swagger/OpenAPI + API client + layout + sidebar + header + 7 route stubs (391 tests) | Tailwind CSS v4 already configured, Next.js rewrites | Session 11: dashboard + upload |
+| 11 | 2026-04-07 | Antigravity | Dashboard (3 components) + Upload (2 components) + 550 CSS lines (391 tests) | API proxy fails gracefully without backend, shimmer loading | Session 12: review pages |
+| 12 | 2026-04-07 | Antigravity | Review queue + invoice detail + 3 components + 590 CSS lines (391 tests) | Dialog/modal pattern, inline editing, dynamic routes | Session 13: schema + mapping pages |

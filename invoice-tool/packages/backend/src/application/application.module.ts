@@ -1,5 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { QueueModule } from '../infrastructure/queue/queue.module';
+import { FileStorageModule } from '../infrastructure/file-storage/file-storage.module';
+import { AiModule } from '../infrastructure/ai/ai.module';
+import { ExternalApiModule } from '../infrastructure/external-api/external-api.module';
 import { UploadBatchUseCase } from './upload/upload-batch.use-case';
 import { ProcessInvoiceUseCase } from './processing/process-invoice.use-case';
 import { ApproveInvoiceUseCase } from './review/approve-invoice.use-case';
@@ -15,10 +18,16 @@ import { CreateExportUseCase } from './export/create-export.use-case';
  * Application module — provides all use cases.
  *
  * Orchestrates domain services via DI. Imports infrastructure modules
- * for repository, queue, AI, and file storage access.
+ * for repository, queue, AI, file storage, and external API access.
+ * Uses forwardRef to break circular dependency with QueueModule.
  */
 @Module({
-  imports: [QueueModule],
+  imports: [
+    forwardRef(() => QueueModule),
+    FileStorageModule,
+    AiModule,
+    ExternalApiModule,
+  ],
   providers: [
     UploadBatchUseCase,
     ProcessInvoiceUseCase,

@@ -1,6 +1,6 @@
 # Agent Notes (Persistent Memory)
 
-> Invoice Processing Tool MVP. Updated: 2026-04-07 (Session 8 complete).
+> Invoice Processing Tool MVP. Updated: 2026-04-07 (Session 10 complete).
 
 ## Project Knowledge
 
@@ -13,7 +13,7 @@
 
 ## Current Progress
 
-- **Phase**: Phase 2 — Infrastructure & Application (2.4b complete, all of Phase 2 done)
+- **Phase**: Phase 4 — Frontend (4.1-4.4 complete, Phase 3 fully done)
 - **Domain entities**: 8 implemented (Invoice, Schema, FingerprintRule, FieldDefinition, Batch, Product, SyncConflict, Mapping)
 - **Value objects**: 3 implemented (TaxId, Money, Confidence)
 - **Repository interfaces**: 8 created
@@ -23,11 +23,17 @@
 - **Domain port interfaces**: 4 (IOcrService, IProductApiClient, IFileStorage, IJobQueue)
 - **Infrastructure services**: SqliteJobQueue, QueueWorkerService
 - **Use cases**: 10 implemented (Upload, Process, Approve, Reject, Edit, CreateSchema, UpdateSchema, SyncProducts, CreateMapping, CreateExport)
-- **NestJS modules**: 7 (Config, Database, AI, ExternalApi, FileStorage, Queue, Application)
-- **API endpoints**: 0 implemented
-- **Frontend pages**: 0 implemented
-- **Tests**: 361 total (193 domain + 85 infra + 83 application+queue, all passing)
-- **Next session**: Session 9 — REST Controllers + DTOs + OpenAPI spec
+- **NestJS modules**: 8 (Config, Database, AI, ExternalApi, FileStorage, Queue, Application, Interface)
+- **Controllers**: 7 (Health, Batch, Invoice, Schema, Mapping, Product, Export)
+- **DTOs**: 17 (8 input + 9 response) with class-validator + Swagger decorators
+- **API endpoints**: 17 REST endpoints across 7 controllers
+- **Swagger UI**: `/api/docs` (dev mode only) — auto-generated from controller decorators
+- **Frontend API client**: Typed `apiClient` with methods for all 17 endpoints
+- **Frontend pages**: Dashboard ✅, Upload ✅, Review Queue ✅, Invoice Detail ✅, + 4 stubs (Schemas, Products, Mappings, Exports)
+- **Frontend layout**: AppShell (collapsible sidebar + header) with Vietnamese labels
+- **Frontend components**: StatCard, RecentBatchesTable, ActivityFeed, FileDropzone, UploadResult, ReviewFilter, InvoiceTable, RejectDialog
+- **Tests**: 391 total (193 domain + 109 infra + 59 application + 30 interface, all passing)
+- **Next session**: Session 13 — Schema wizard + Mapping management pages
 
 ## Bounded Contexts
 
@@ -138,6 +144,44 @@
 - `ExtractedDataProps.schemaId` is `string` (non-null) but `InvoiceProps.schemaId` is `string | null` — must provide fallback
 - `ExtractedDataProps.classificationConfidence` is `number` not `number | null` — must provide fallback
 
+### Interface Layer Patterns (Session 9)
+- Controllers are THIN — delegate to use cases for mutations, direct repo inject for read-only GETs
+- `app.setGlobalPrefix('api')` is set in `main.ts` — controllers use routes WITHOUT `api/` (e.g., `@Controller('batches')`, not `@Controller('api/batches')`)
+- DTOs use `class-validator` decorators + `@nestjs/swagger` `ApiProperty`/`ApiPropertyOptional` decorators
+- Install `class-validator` + `class-transformer` for DTO validation pipeline
+- `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` set globally in `main.ts`
+- `import request from 'supertest'` (default import) — NOT `import * as request` — `esModuleInterop: true` in tsconfig
+- Invoice entity's confidence getter is `overallConfidence`, mapped to `confidenceScore` in response DTO
+- `InterfaceModule` imports `ApplicationModule` for use case DI; `DatabaseModule` is `@Global()` so repo tokens available everywhere
+- File download uses `StreamableFile` + `@Res({ passthrough: true })` pattern
+- Controller test pattern: `Test.createTestingModule({ controllers: [...], providers: [mock use cases + mock repos] })`
+
+### Frontend Patterns (Session 10)
+- **Next.js 16.2.2** with Turbopack — builds in <1 second, dev server ready in ~450ms
+- **Tailwind CSS 4** with `@tailwindcss/postcss` — uses `@theme inline {}` for CSS custom properties (NOT tailwind.config.js)
+- **API proxy**: `next.config.ts` → `rewrites()` maps `/api/:path*` → `http://localhost:3000/api/:path*`
+- **Typed API client** at `src/lib/api-client.ts` — generic `apiFetch<T>()` with ApiError class, typed methods for all endpoints
+- **Vietnamese text**: All UI strings via `src/lib/constants.ts` `VI` constant object — NO hardcoded Vietnamese in JSX
+- **Layout pattern**: AppShell (client component) wraps all pages → Sidebar + Header + `<main>` — state managed with `useState`
+- **Sidebar**: collapsible with CSS transitions, active route detection via `usePathname()`, grouped nav sections
+- **Route-to-title mapping**: `getPageTitle()` in AppShell maps pathname → Vietnamese page title for header
+- **Page stubs**: Each route page is a server component with icon + title + description — to be replaced with real implementations
+- **Frontend dev**: `npm run dev` (port 3001) | `npm run build` for production check | `npm run typecheck` for tsc
+- **No React Query yet** — using `useState` + `useEffect` + `useCallback` for data fetching
+- **No frontend tests yet** — manual verification via browser screenshots
+
+### Frontend Patterns (Session 12)
+- **Page data fetching pattern**: `useState` for data/loading/error → `useCallback(async () => { setLoading(true); try { ... } catch { setError(...) } finally { setLoading(false) } }, [deps])` → `useEffect(() => { fetch() }, [fetch])`
+- **Filter integration**: active filter in state triggers re-fetch (include as dependency in `useCallback`)
+- **Dialog/Modal pattern**: `RejectDialog` component with `open` prop, backdrop overlay `onClick={onClose}`, content `onClick={stopPropagation}`, `Escape` key handler
+- **Inline editing pattern**: `editMode` boolean state → show inputs instead of display text → `editValues` Record<string, string> → compute diff on save
+- **Toast pattern**: `{ message, type }` state → `setTimeout(() => setToast(null), 3000)` for auto-dismiss
+- **Confidence formatting**: Score 0-1 → percentage with color coding (>=80% green, >=60% amber, <60% red)
+- **Amount formatting**: `Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })`
+- **Dynamic routes**: `/review/[id]/page.tsx` → `useParams()` to get `id`, `useRouter()` for navigation
+- **CSS `@theme inline` warning**: IDE shows "Unknown at rule @theme" — false positive from CSS linter not understanding Tailwind 4, ignore safely
+
+
 ## Key Files
 
 | Resource | Path |
@@ -148,3 +192,7 @@
 | Master Plan | `tasks/08-master-plan.md` |
 | Session Handoff | `.context/session-handoff.md` |
 | Config | `config.env` |
+| API Client | `packages/frontend/src/lib/api-client.ts` |
+| Vietnamese Text | `packages/frontend/src/lib/constants.ts` |
+| App Layout | `packages/frontend/src/components/layout/AppShell.tsx` |
+

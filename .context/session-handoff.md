@@ -1,47 +1,62 @@
 # Session Handoff
 
-## Last Session: Session 8 — Remaining Application Use Cases
-**Date**: 2026-04-07
-**Status**: ✅ Complete
+## Last Session: Session 13 — Schema & Mapping Pages + Backend Startup Fixes
+**Date**: 2026-04-07  
+Status: ✅ Complete
 
 ### What was done
-- **ApproveInvoiceUseCase** — `application/review/approve-invoice.use-case.ts` (5 tests)
-  - Status guard (needs_review only), batch counter update, batch-not-found edge case
-- **RejectInvoiceUseCase** — `application/review/reject-invoice.use-case.ts` (6 tests)
-  - Reason validation (non-empty), status guard, batch error counter
-- **EditInvoiceUseCase** — `application/review/edit-invoice.use-case.ts` (5 tests)
-  - Editable field whitelist, setExtractedData + markAsNeedsReview restore, non-editable fields ignored
-- **CreateSchemaUseCase** — `application/schema/create-schema.use-case.ts` (5 tests)
-  - Tax ID validation via TaxId VO, duplicate check by NCC tax ID, cascade create rules+fields
-- **UpdateSchemaUseCase** — `application/schema/update-schema.use-case.ts` (4 tests)
-  - updateInfo, updatePromptTemplate, activate/deactivate status transitions
-- **SyncProductsUseCase** — `application/product/sync-products.use-case.ts` (5 tests)
-  - Create new, update existing, idempotent re-sync, API error handling, conflict detection
-- **CreateMappingUseCase** — `application/mapping/create-mapping.use-case.ts` (4 tests)
-  - Manual/auto_learned/bulk_import sources, schema existence check
-- **CreateExportUseCase** — `application/export/create-export.use-case.ts` (5 tests)
-  - CSV/JSON serialization, empty exports, filter approved only, invalid format guard
-- **ApplicationModule** updated — all 10 use cases registered (2 prior + 8 new)
-- **Quality gate**: tsc ✅ | 361 tests ✅ | architecture drift ✅
 
-### What was found
-- `InvoiceType` is typed union `'original' | 'adjustment' | 'replacement'` — not free-form string
-- `Product.markSynced()` requires `externalId: string` argument
-- `FingerprintRule` valid rule types: `'mst_exact' | 'keyword' | 'symbol_regex' | 'custom'` (not `'tax_id'`)
-- `EditInvoiceUseCase` must call `setExtractedData()` then `markAsNeedsReview()` to preserve status
-- `InvoiceProps` is a typed interface — cannot be cast to `Record<string, unknown>` directly
+#### Frontend — Schema Management Pages
+- **Schema List Page** — `src/app/schemas/page.tsx` (replaced stub):
+  - Card grid with auto-fill responsive layout, loading skeletons, error/empty states
+  - "Tạo mẫu mới" + "Làm mới" action buttons
+- **Schema Card** — `src/components/schema/SchemaCard.tsx`:
+  - Gradient hover border, NCC info, MST monospace, version badge, date
+- **Schema Wizard** — `src/app/schemas/new/page.tsx`:
+  - 2-step wizard: Basic Info (name, NCC, MST, description) → Review & Confirm
+  - Step indicator with numbered circles and connector lines
+  - API integration with `apiClient.createSchema()`
+- **Schema Detail** — `src/app/schemas/[id]/page.tsx`:
+  - Full detail view with metadata sidebar
+  - Inline editing for name, NCC, MST, description fields
+  - Toast notifications on save
+
+#### Frontend — Mapping Management Page
+- **Mappings Page** — `src/app/mappings/page.tsx` (replaced stub):
+  - Schema filter dropdown, error banner, empty state
+  - "Tạo ánh xạ mới" button opens create dialog
+- **Mapping Table** — `src/components/mapping/MappingTable.tsx`:
+  - Skeleton loading, partner/Viettel product cells, source badges
+- **Create Mapping Dialog** — `src/components/mapping/CreateMappingDialog.tsx`:
+  - Modal with schema selector, partner name, Viettel code/name, source type
+  - Form validation and API submission
+
+#### CSS — ~860 lines added to globals.css
+- Form elements (input, textarea, select with custom chevron)
+- Dialog enhancements (close button, error banner, mapping dialog width)
+- Toast notifications with slide-in + fade-out animations
+- Schema card grid, wizard steps, detail page grid
+- Mapping filter bar, table cell styles
+- Page entrance animation
+- Responsive breakpoints (1024px + 640px)
+
+#### Backend — Critical Startup Fixes
+- **Database auto-migration** — `connection.ts`: Added `initializeTables()` with all 14 `CREATE TABLE IF NOT EXISTS` statements so tables are created on first run
+- **DI circular dependency** — `QueueModule` ↔ `ApplicationModule`: Fixed with `forwardRef()` on both sides
+- **QueueWorkerService constructor** — Optional `pollIntervalMs`/`batchSize` params now use `@Optional() @Inject()` decorators instead of bare primitives
+- **ApplicationModule imports** — Added `FileStorageModule`, `AiModule`, `ExternalApiModule` so use case dependencies resolve
+- **InterfaceModule imports** — Added `FileStorageModule` for `ExportController`'s direct `@Inject('IFileStorage')`
+
+### Quality Gates
+- Backend: tsc ✅ | 391 tests (47 suites) ✅
+- Frontend: next build ✅ (all routes generated)
+- Full stack: Backend running on :3000 + Frontend on :3001 confirmed working end-to-end
 
 ### What's next
-- **Session 9**: Phase Step 3.1 — All REST controllers + DTOs + OpenAPI spec
-  - Batch/upload controllers
-  - Invoice/processing controllers
-  - Review controllers
-  - Schema CRUD controllers
-  - Product sync controllers
-  - Mapping controllers
-  - Export controllers
+- **Session 14**: Phase 4.7 + 4.8 + 4.9 — Products page, Export page, Diagnostics page
+- Consider adding seed data for demo purposes
 
 ### Test counts
-- Previous: 322 tests
-- Added: 39 tests
-- Current: 361 tests (40 suites)
+- Previous: 391 tests (47 suites)
+- Added: 0 (frontend has no tests yet)
+- Current: 391 tests (47 suites)

@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(packages/**)",
+      "Write(data/**)",
+      "Write(config.env)",
+      "Write(.context/**)",
+      "Write(tasks/**)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(wc *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(bash .agents/scripts/*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(git push *)",
+      "Bash(git force-push *)",
+      "Bash(curl *)",
+      "Write(.claude/**)",
+      "Write(.agents/**)",
+      "Write(CLAUDE.md)",
+      "Write(ARCHITECTURE.md)",
+      "Write(.gemini/**)"
+    ]
+  }
+}

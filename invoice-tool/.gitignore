@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
+out/
+
+# Runtime data
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Config (user-specific)
+config.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Generated
+packages/shared/src/api/generated/
+
+# Test
+coverage/

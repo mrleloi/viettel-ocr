@@ -1,0 +1,972 @@
+﻿node.exe : FAIL packages/backend/src/domain/shared/__test
+s__/domain-error.spec.ts
+At line:1 char:1
++ & "C:\nvm4w\nodejs/node.exe" 
+"C:\nvm4w\nodejs/node_modules/npm/bin/np ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (FAIL packag 
+   es/b...n-error.spec.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  ΓùÅ Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when 
+your code or its dependencies use non-standard 
+JavaScript syntax, or when Jest is not configured to 
+support such syntax.
+
+    Out of the box Jest supports Babel, which will be 
+used to transform your files into valid JS based on your 
+Babel configuration.
+
+    By default "node_modules" folder is ignored by 
+transformers.
+
+    Here's what you can do:
+     ΓÇó If you are trying to use ECMAScript Modules, 
+see https://jestjs.io/docs/ecmascript-modules for how to 
+enable it.
+     ΓÇó If you are trying to use TypeScript, see 
+https://jestjs.io/docs/getting-started#using-typescript
+     ΓÇó To have some of your "node_modules" files 
+transformed, you can specify a custom 
+"transformIgnorePatterns" in your config.
+     ΓÇó If you need a custom transformation, specify a 
+"transform" option in your config.
+     ΓÇó If you simply want to mock your non-JS modules 
+(e.g. binary assets) you can stub them out with the 
+"moduleNameMapper" config option.
+
+    You'll find more details and examples of these 
+config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\htdocs\viettel-ocr\invoice-tool\packages\backend\s
+rc\domain\shared\__tests__\domain-error.spec.ts:1
+    import { DomainError } from '../domain-error';
+    ^^^^^^
+
+    SyntaxError: Cannot use import statement outside a 
+module
+
+      at Runtime.createScriptFromCode 
+(node_modules/jest-runtime/build/index.js:1314:40)
+
+FAIL packages/backend/src/domain/shared/__tests__/confide
+nce.vo.spec.ts
+  ΓùÅ Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when 
+your code or its dependencies use non-standard 
+JavaScript syntax, or when Jest is not configured to 
+support such syntax.
+
+    Out of the box Jest supports Babel, which will be 
+used to transform your files into valid JS based on your 
+Babel configuration.
+
+    By default "node_modules" folder is ignored by 
+transformers.
+
+    Here's what you can do:
+     ΓÇó If you are trying to use ECMAScript Modules, 
+see https://jestjs.io/docs/ecmascript-modules for how to 
+enable it.
+     ΓÇó If you are trying to use TypeScript, see 
+https://jestjs.io/docs/getting-started#using-typescript
+     ΓÇó To have some of your "node_modules" files 
+transformed, you can specify a custom 
+"transformIgnorePatterns" in your config.
+     ΓÇó If you need a custom transformation, specify a 
+"transform" option in your config.
+     ΓÇó If you simply want to mock your non-JS modules 
+(e.g. binary assets) you can stub them out with the 
+"moduleNameMapper" config option.
+
+    You'll find more details and examples of these 
+config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\htdocs\viettel-ocr\invoice-tool\packages\backend\s
+rc\domain\shared\__tests__\confidence.vo.spec.ts:1
+    import { Confidence } from 
+'../value-objects/confidence.vo';
+    ^^^^^^
+
+    SyntaxError: Cannot use import statement outside a 
+module
+
+      at Runtime.createScriptFromCode 
+(node_modules/jest-runtime/build/index.js:1314:40)
+
+FAIL packages/backend/src/domain/shared/__tests__/tax-id.
+vo.spec.ts
+  ΓùÅ Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when 
+your code or its dependencies use non-standard 
+JavaScript syntax, or when Jest is not configured to 
+support such syntax.
+
+    Out of the box Jest supports Babel, which will be 
+used to transform your files into valid JS based on your 
+Babel configuration.
+
+    By default "node_modules" folder is ignored by 
+transformers.
+
+    Here's what you can do:
+     ΓÇó If you are trying to use ECMAScript Modules, 
+see https://jestjs.io/docs/ecmascript-modules for how to 
+enable it.
+     ΓÇó If you are trying to use TypeScript, see 
+https://jestjs.io/docs/getting-started#using-typescript
+     ΓÇó To have some of your "node_modules" files 
+transformed, you can specify a custom 
+"transformIgnorePatterns" in your config.
+     ΓÇó If you need a custom transformation, specify a 
+"transform" option in your config.
+     ΓÇó If you simply want to mock your non-JS modules 
+(e.g. binary assets) you can stub them out with the 
+"moduleNameMapper" config option.
+
+    You'll find more details and examples of these 
+config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\htdocs\viettel-ocr\invoice-tool\packages\backend\s
+rc\domain\shared\__tests__\tax-id.vo.spec.ts:1
+    import { TaxId } from '../value-objects/tax-id.vo';
+    ^^^^^^
+
+    SyntaxError: Cannot use import statement outside a 
+module
+
+      at Runtime.createScriptFromCode 
+(node_modules/jest-runtime/build/index.js:1314:40)
+
+FAIL packages/backend/src/domain/shared/__tests__/money.v
+o.spec.ts
+  ΓùÅ Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when 
+your code or its dependencies use non-standard 
+JavaScript syntax, or when Jest is not configured to 
+support such syntax.
+
+    Out of the box Jest supports Babel, which will be 
+used to transform your files into valid JS based on your 
+Babel configuration.
+
+    By default "node_modules" folder is ignored by 
+transformers.
+
+    Here's what you can do:
+     ΓÇó If you are trying to use ECMAScript Modules, 
+see https://jestjs.io/docs/ecmascript-modules for how to 
+enable it.
+     ΓÇó If you are trying to use TypeScript, see 
+https://jestjs.io/docs/getting-started#using-typescript
+     ΓÇó To have some of your "node_modules" files 
+transformed, you can specify a custom 
+"transformIgnorePatterns" in your config.
+     ΓÇó If you need a custom transformation, specify a 
+"transform" option in your config.
+     ΓÇó If you simply want to mock your non-JS modules 
+(e.g. binary assets) you can stub them out with the 
+"moduleNameMapper" config option.
+
+    You'll find more details and examples of these 
+config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\htdocs\viettel-ocr\invoice-tool\packages\backend\s
+rc\domain\shared\__tests__\money.vo.spec.ts:1
+    import { Money } from '../value-objects/money.vo';
+    ^^^^^^
+
+    SyntaxError: Cannot use import statement outside a 
+module
+
+      at Runtime.createScriptFromCode 
+(node_modules/jest-runtime/build/index.js:1314:40)
+
+FAIL packages/backend/src/domain/product/__tests__/sync-c
+onflict.entity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\product\__tests__\sync-conflict.en
+tity.spec.ts: Unexpected token, expected "," (4:33)
+
+    [0m [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+     [90m 3 |[39m
+    [31m[1m>[22m[39m[90m 4 |[39m 
+[36mfunction[39m 
+createConflict(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mSyncConflict[39m {
+     [90m   |[39m                                  
+[31m[1m^[22m[39m
+     [90m 5 |[39m   [36mreturn[39m 
+[33mSyncConflict[39m[33m.[39mcreate({
+     [90m 6 |[39m     productId[33m:[39m 
+[32m'prod-1'[39m[33m,[39m
+     [90m 7 |[39m     fieldName[33m:[39m 
+[32m'productName'[39m[33m,[39m[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expect] 
+(node_modules/@babel/parser/src/parser/util.ts:157:12)
+      at Parser.expect [as parseBindingList] 
+(node_modules/@babel/parser/src/parser/lval.ts:495:14)
+      at Parser.parseBindingList [as 
+parseFunctionParams] (node_modules/@babel/parser/src/pars
+er/statement.ts:1728:24)
+      at Parser.parseFunctionParams [as parseFunction] (n
+ode_modules/@babel/parser/src/parser/statement.ts:1688:10
+)
+      at Parser.parseFunction [as 
+parseFunctionStatement] (node_modules/@babel/parser/src/p
+arser/statement.ts:1080:17)
+      at Parser.parseFunctionStatement [as 
+parseStatementContent] (node_modules/@babel/parser/src/pa
+rser/statement.ts:525:21)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+FAIL packages/backend/src/domain/schema/__tests__/schema.
+entity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\schema\__tests__\schema.entity.spe
+c.ts: Unexpected token, expected "," (4:31)
+
+    [0m [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+     [90m 3 |[39m
+    [31m[1m>[22m[39m[90m 4 |[39m 
+[36mfunction[39m 
+createSchema(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mSchema[39m {
+     [90m   |[39m                                
+[31m[1m^[22m[39m
+     [90m 5 |[39m   [36mreturn[39m 
+[33mSchema[39m[33m.[39mcreate({
+     [90m 6 |[39m     name[33m:[39m [32m'Digiworld 
+VAT Invoice'[39m[33m,[39m
+     [90m 7 |[39m     nccName[33m:[39m 
+[32m'Digiworld'[39m[33m,[39m[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expect] 
+(node_modules/@babel/parser/src/parser/util.ts:157:12)
+      at Parser.expect [as parseBindingList] 
+(node_modules/@babel/parser/src/parser/lval.ts:495:14)
+      at Parser.parseBindingList [as 
+parseFunctionParams] (node_modules/@babel/parser/src/pars
+er/statement.ts:1728:24)
+      at Parser.parseFunctionParams [as parseFunction] (n
+ode_modules/@babel/parser/src/parser/statement.ts:1688:10
+)
+      at Parser.parseFunction [as 
+parseFunctionStatement] (node_modules/@babel/parser/src/p
+arser/statement.ts:1080:17)
+      at Parser.parseFunctionStatement [as 
+parseStatementContent] (node_modules/@babel/parser/src/pa
+rser/statement.ts:525:21)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+FAIL packages/backend/src/domain/invoice/__tests__/invoic
+e.entity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\invoice\__tests__\invoice.entity.s
+pec.ts: Unexpected token, expected "from" (3:12)
+
+    [0m [90m 1 |[39m [36mimport[39m { 
+[33mInvoice[39m } [36mfrom[39m 
+[32m'../invoice.entity'[39m[33m;[39m
+     [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m 
+type { [33mInvoiceStatus[39m } [36mfrom[39m 
+[32m'@invoice-tool/shared'[39m[33m;[39m
+     [90m   |[39m             [31m[1m^[22m[39m
+     [90m 4 |[39m
+     [90m 5 |[39m [36mfunction[39m 
+createInvoice(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mInvoice[39m {
+     [90m 6 |[39m   [36mreturn[39m 
+[33mInvoice[39m[33m.[39mcreate({[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expectContextual] 
+(node_modules/@babel/parser/src/parser/util.ts:114:12)
+      at Parser.expectContextual [as 
+parseImportSpecifiersAndAfter] (node_modules/@babel/parse
+r/src/parser/statement.ts:3180:10)
+      at Parser.parseImportSpecifiersAndAfter [as 
+parseImport] (node_modules/@babel/parser/src/parser/state
+ment.ts:3148:17)
+      at Parser.parseImport [as parseStatementContent] (n
+ode_modules/@babel/parser/src/parser/statement.ts:647:25)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+FAIL packages/backend/src/domain/product/__tests__/produc
+t.entity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\product\__tests__\product.entity.s
+pec.ts: Unexpected token, expected "," (4:32)
+
+    [0m [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+     [90m 3 |[39m
+    [31m[1m>[22m[39m[90m 4 |[39m 
+[36mfunction[39m 
+createProduct(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mProduct[39m {
+     [90m   |[39m                                 
+[31m[1m^[22m[39m
+     [90m 5 |[39m   [36mreturn[39m 
+[33mProduct[39m[33m.[39mcreate({
+     [90m 6 |[39m     productCode[33m:[39m 
+[32m'LOA-XM-OUTDOOR-30W'[39m[33m,[39m
+     [90m 7 |[39m     productName[33m:[39m [32m'Loa 
+Bluetooth Xiaomi Sound Outdoor 30W'[39m[33m,[39m[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expect] 
+(node_modules/@babel/parser/src/parser/util.ts:157:12)
+      at Parser.expect [as parseBindingList] 
+(node_modules/@babel/parser/src/parser/lval.ts:495:14)
+      at Parser.parseBindingList [as 
+parseFunctionParams] (node_modules/@babel/parser/src/pars
+er/statement.ts:1728:24)
+      at Parser.parseFunctionParams [as parseFunction] (n
+ode_modules/@babel/parser/src/parser/statement.ts:1688:10
+)
+      at Parser.parseFunction [as 
+parseFunctionStatement] (node_modules/@babel/parser/src/p
+arser/statement.ts:1080:17)
+      at Parser.parseFunctionStatement [as 
+parseStatementContent] (node_modules/@babel/parser/src/pa
+rser/statement.ts:525:21)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+FAIL packages/backend/src/domain/schema/__tests__/fingerp
+rint-rule.entity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\schema\__tests__\fingerprint-rule.
+entity.spec.ts: Unexpected token, expected "," (4:29)
+
+    [0m [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+     [90m 3 |[39m
+    [31m[1m>[22m[39m[90m 4 |[39m 
+[36mfunction[39m 
+createRule(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mFingerprintRule[39m 
+{
+     [90m   |[39m                              
+[31m[1m^[22m[39m
+     [90m 5 |[39m   [36mreturn[39m 
+[33mFingerprintRule[39m[33m.[39mcreate({
+     [90m 6 |[39m     schemaId[33m:[39m 
+[32m'schema-1'[39m[33m,[39m
+     [90m 7 |[39m     ruleType[33m:[39m 
+[32m'mst_exact'[39m[33m,[39m[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expect] 
+(node_modules/@babel/parser/src/parser/util.ts:157:12)
+      at Parser.expect [as parseBindingList] 
+(node_modules/@babel/parser/src/parser/lval.ts:495:14)
+      at Parser.parseBindingList [as 
+parseFunctionParams] (node_modules/@babel/parser/src/pars
+er/statement.ts:1728:24)
+      at Parser.parseFunctionParams [as parseFunction] (n
+ode_modules/@babel/parser/src/parser/statement.ts:1688:10
+)
+      at Parser.parseFunction [as 
+parseFunctionStatement] (node_modules/@babel/parser/src/p
+arser/statement.ts:1080:17)
+      at Parser.parseFunctionStatement [as 
+parseStatementContent] (node_modules/@babel/parser/src/pa
+rser/statement.ts:525:21)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+FAIL packages/backend/src/domain/mapping/__tests__/mappin
+g.entity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\mapping\__tests__\mapping.entity.s
+pec.ts: Unexpected token, expected "," (4:32)
+
+    [0m [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+     [90m 3 |[39m
+    [31m[1m>[22m[39m[90m 4 |[39m 
+[36mfunction[39m 
+createMapping(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mMapping[39m {
+     [90m   |[39m                                 
+[31m[1m^[22m[39m
+     [90m 5 |[39m   [36mreturn[39m 
+[33mMapping[39m[33m.[39mcreate({
+     [90m 6 |[39m     schemaId[33m:[39m 
+[32m'schema-1'[39m[33m,[39m
+     [90m 7 |[39m     partnerProductName[33m:[39m 
+[32m'Xiaomi Sound Outdoor 30W V├áng 
+(QBH4370GL)'[39m[33m,[39m[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expect] 
+(node_modules/@babel/parser/src/parser/util.ts:157:12)
+      at Parser.expect [as parseBindingList] 
+(node_modules/@babel/parser/src/parser/lval.ts:495:14)
+      at Parser.parseBindingList [as 
+parseFunctionParams] (node_modules/@babel/parser/src/pars
+er/statement.ts:1728:24)
+      at Parser.parseFunctionParams [as parseFunction] (n
+ode_modules/@babel/parser/src/parser/statement.ts:1688:10
+)
+      at Parser.parseFunction [as 
+parseFunctionStatement] (node_modules/@babel/parser/src/p
+arser/statement.ts:1080:17)
+      at Parser.parseFunctionStatement [as 
+parseStatementContent] (node_modules/@babel/parser/src/pa
+rser/statement.ts:525:21)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+FAIL packages/backend/src/domain/batch/__tests__/batch.en
+tity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\batch\__tests__\batch.entity.spec.
+ts: Unexpected token, expected "," (4:30)
+
+    [0m [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+     [90m 3 |[39m
+    [31m[1m>[22m[39m[90m 4 |[39m 
+[36mfunction[39m 
+createBatch(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mBatch[39m {
+     [90m   |[39m                               
+[31m[1m^[22m[39m
+     [90m 5 |[39m   [36mreturn[39m 
+[33mBatch[39m[33m.[39mcreate({
+     [90m 6 |[39m     uploadMode[33m:[39m 
+[32m'single_ncc'[39m[33m,[39m
+     [90m 7 |[39m     totalFiles[33m:[39m 
+[35m5[39m[33m,[39m[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expect] 
+(node_modules/@babel/parser/src/parser/util.ts:157:12)
+      at Parser.expect [as parseBindingList] 
+(node_modules/@babel/parser/src/parser/lval.ts:495:14)
+      at Parser.parseBindingList [as 
+parseFunctionParams] (node_modules/@babel/parser/src/pars
+er/statement.ts:1728:24)
+      at Parser.parseFunctionParams [as parseFunction] (n
+ode_modules/@babel/parser/src/parser/statement.ts:1688:10
+)
+      at Parser.parseFunction [as 
+parseFunctionStatement] (node_modules/@babel/parser/src/p
+arser/statement.ts:1080:17)
+      at Parser.parseFunctionStatement [as 
+parseStatementContent] (node_modules/@babel/parser/src/pa
+rser/statement.ts:525:21)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+FAIL packages/backend/src/domain/schema/__tests__/field-d
+efinition.entity.spec.ts
+  ΓùÅ Test suite failed to run
+
+    SyntaxError: C:\htdocs\viettel-ocr\invoice-tool\packa
+ges\backend\src\domain\schema\__tests__\field-definition.
+entity.spec.ts: Unexpected token, expected "," (4:30)
+
+    [0m [90m 2 |[39m [36mimport[39m { 
+[33mDomainError[39m } [36mfrom[39m 
+[32m'../../shared/domain-error'[39m[33m;[39m
+     [90m 3 |[39m
+    [31m[1m>[22m[39m[90m 4 |[39m 
+[36mfunction[39m 
+createField(overrides[33m?[39m[33m:[39m 
+[33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m 
+unknown[33m>[39m)[33m:[39m [33mFieldDefinition[39m 
+{
+     [90m   |[39m                               
+[31m[1m^[22m[39m
+     [90m 5 |[39m   [36mreturn[39m 
+[33mFieldDefinition[39m[33m.[39mcreate({
+     [90m 6 |[39m     schemaId[33m:[39m 
+[32m'schema-1'[39m[33m,[39m
+     [90m 7 |[39m     fieldName[33m:[39m 
+[32m'invoice_number'[39m[33m,[39m[0m
+
+      at constructor 
+(node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@ba
+bel/parser/src/tokenizer/index.ts:1504:19)
+      at Parser.raise [as unexpected] (node_modules/@babe
+l/parser/src/tokenizer/index.ts:1544:16)
+      at Parser.unexpected [as expect] 
+(node_modules/@babel/parser/src/parser/util.ts:157:12)
+      at Parser.expect [as parseBindingList] 
+(node_modules/@babel/parser/src/parser/lval.ts:495:14)
+      at Parser.parseBindingList [as 
+parseFunctionParams] (node_modules/@babel/parser/src/pars
+er/statement.ts:1728:24)
+      at Parser.parseFunctionParams [as parseFunction] (n
+ode_modules/@babel/parser/src/parser/statement.ts:1688:10
+)
+      at Parser.parseFunction [as 
+parseFunctionStatement] (node_modules/@babel/parser/src/p
+arser/statement.ts:1080:17)
+      at Parser.parseFunctionStatement [as 
+parseStatementContent] (node_modules/@babel/parser/src/pa
+rser/statement.ts:525:21)
+      at Parser.parseStatementContent [as 
+parseStatementLike] (node_modules/@babel/parser/src/parse
+r/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (
+node_modules/@babel/parser/src/parser/statement.ts:419:17
+)
+      at Parser.parseModuleItem [as 
+parseBlockOrModuleBlockBody] (node_modules/@babel/parser/
+src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as 
+parseBlockBody] (node_modules/@babel/parser/src/parser/st
+atement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_mo
+dules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_mod
+ules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] 
+(node_modules/@babel/parser/src/parser/index.ts:83:25)
+      at parse 
+(node_modules/@babel/parser/src/index.ts:86:38)
+      at parser 
+(node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/tran
+sformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation
+/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform 
+(node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync 
+(node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-
+stack-trace.ts:99:14)
+      at transformSync 
+(node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource 
+(node_modules/@jest/transform/build/index.js:415:31)
+      at ScriptTransformer._transformAndBuildScript 
+(node_modules/@jest/transform/build/index.js:512:40)
+      at ScriptTransformer.transform 
+(node_modules/@jest/transform/build/index.js:551:19)
+
+Test Suites: 12 failed, 12 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.055 s
+Ran all test suites.

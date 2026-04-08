@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import type { AppDatabase } from '../connection';
 import { DATABASE_TOKEN } from '../connection';
 import { invoices } from '../schema';
@@ -40,6 +40,21 @@ export class InvoiceRepositoryImpl implements IInvoiceRepository {
     const rows = await this.db.select().from(invoices)
       .where(eq(invoices.batchId, batchId))
       .all();
+    return rows.map((row) => Invoice.reconstitute(this.toDomain(row)));
+  }
+
+  /**
+   * Find recent invoices, optionally filtered by status.
+   * @param status Status filter (undefined returns all)
+   * @param limit Max number of rows to return
+   * @returns Recent invoices, newest first
+   */
+  async findRecent(status: InvoiceStatus | undefined, limit: number): Promise<Invoice[]> {
+    const baseQuery = this.db.select().from(invoices);
+    const filtered = status
+      ? baseQuery.where(eq(invoices.status, status))
+      : baseQuery;
+    const rows = await filtered.orderBy(desc(invoices.createdAt)).limit(limit).all();
     return rows.map((row) => Invoice.reconstitute(this.toDomain(row)));
   }
 
@@ -94,6 +109,30 @@ export class InvoiceRepositoryImpl implements IInvoiceRepository {
     await this.db.update(invoices)
       .set({ status, updatedAt: new Date().toISOString() })
       .where(eq(invoices.id, id));
+  }
+
+  /**
+   * Find invoices matching a set of optional filters.
+   * @param filters Optional status, schemaId, dateFrom, dateTo filters
+   * @returns Matching invoices (all if no filters)
+   */
+  async findByFilters(filters: {
+    status?: string;
+    schemaId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<Invoice[]> {
+    let query = this.db.select().from(invoices);
+    const conditions = [];
+    if (filters.status) conditions.push(eq(invoices.status, filters.status));
+    if (filters.schemaId) conditions.push(eq(invoices.schemaId, filters.schemaId));
+    if (filters.dateFrom) conditions.push(gte(invoices.createdAt, filters.dateFrom));
+    if (filters.dateTo) conditions.push(lte(invoices.createdAt, filters.dateTo));
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
+    }
+    const rows = await query.all();
+    return rows.map((row) => Invoice.reconstitute(this.toDomain(row)));
   }
 
   /**

@@ -1,0 +1,12 @@
+[31m[Nest] 7040  - [39m04/08/2026, 8:13:57 AM [31m  ERROR[39m [38;5;3m[ExceptionsHandler] [39mError: Failed to fetch products from API: Viettel Product API unreachable at : Failed to parse URL from /products?page=1&limit=100
+    at SyncProductsUseCase.execute [90m(C:\htdocs\viettel-ocr\invoice-tool\packages\backend\[39msrc\application\product\sync-products.use-case.ts:49:13[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+    at async ProductController.syncProducts [90m(C:\htdocs\viettel-ocr\invoice-tool\packages\backend\[39msrc\interface\http\product.controller.ts:37:20[90m)[39m
+    at async C:\htdocs\viettel-ocr\invoice-tool\node_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+    at async C:\htdocs\viettel-ocr\invoice-tool\node_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17
+[31m[Nest] 7040  - [39m04/08/2026, 8:33:34 AM [31m  ERROR[39m [38;5;3m[ExceptionsHandler] [39mError: Failed to fetch products from API: Viettel Product API unreachable at : Failed to parse URL from /products?page=1&limit=100
+    at SyncProductsUseCase.execute [90m(C:\htdocs\viettel-ocr\invoice-tool\packages\backend\[39msrc\application\product\sync-products.use-case.ts:49:13[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+    at async ProductController.syncProducts [90m(C:\htdocs\viettel-ocr\invoice-tool\packages\backend\[39msrc\interface\http\product.controller.ts:37:20[90m)[39m
+    at async C:\htdocs\viettel-ocr\invoice-tool\node_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+    at async C:\htdocs\viettel-ocr\invoice-tool\node_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17

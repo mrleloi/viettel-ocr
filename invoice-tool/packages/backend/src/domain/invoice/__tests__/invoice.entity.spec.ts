@@ -226,6 +226,129 @@ describe('Invoice', () => {
     });
   });
 
+  describe('resumeForReprocess', () => {
+    /**
+     * Helper: create invoice in a specific status via reconstitute.
+     */
+    function createInvoiceInStatus(status: InvoiceStatus): Invoice {
+      return Invoice.reconstitute({
+        id: 'inv-reprocess', batchId: 'b-1', originalFilename: 'test.pdf',
+        storagePath: '/p/test.pdf', fileHash: 'hash123', fileSizeBytes: 1024, pageCount: 2,
+        status,
+        schemaId: 'schema-1', classificationMethod: 'fingerprint', classificationConfidence: 0.95,
+        invoiceNumber: '0080321', invoiceSymbol: '1C26TAA', invoiceDate: '2026-04-07',
+        invoiceType: 'original', sellerName: 'Digiworld', sellerTaxId: '0302861742',
+        buyerName: 'Viettel', buyerTaxId: '0100109106',
+        subtotal: 881900, vatRate: 8, vatAmount: 70552, total: 952452, poNumber: 'PO-001',
+        lineItems: [{ name: 'Product A', unit: 'cái', quantity: 1, unitPrice: 881900, amount: 881900, vatRate: 8, vatAmount: 70552, totalWithVat: 952452 }],
+        overallConfidence: 0.92, ocrRawText: 'raw text', extractedRawJson: '{"test":true}',
+        validationErrors: '["err1"]', fieldConfidences: '{"invoiceNumber":0.99}',
+        duplicateOf: status === 'duplicate' ? 'inv-original' : null,
+        createdAt: new Date('2026-04-07'), updatedAt: new Date('2026-04-07'),
+        processedAt: new Date('2026-04-07'), reviewedAt: new Date('2026-04-07'), reviewedBy: 'op-1',
+      });
+    }
+
+    it('should reprocess from approved status — resets to pending and wipes data', () => {
+      const invoice = createInvoiceInStatus('approved');
+      invoice.resumeForReprocess();
+
+      expect(invoice.status).toBe('pending');
+      expect(invoice.schemaId).toBeNull();
+      expect(invoice.classificationMethod).toBeNull();
+      expect(invoice.classificationConfidence).toBeNull();
+      expect(invoice.invoiceNumber).toBeNull();
+      expect(invoice.invoiceSymbol).toBeNull();
+      expect(invoice.invoiceDate).toBeNull();
+      expect(invoice.invoiceType).toBeNull();
+      expect(invoice.sellerName).toBeNull();
+      expect(invoice.sellerTaxId).toBeNull();
+      expect(invoice.buyerName).toBeNull();
+      expect(invoice.buyerTaxId).toBeNull();
+      expect(invoice.subtotal).toBeNull();
+      expect(invoice.vatRate).toBeNull();
+      expect(invoice.vatAmount).toBeNull();
+      expect(invoice.total).toBeNull();
+      expect(invoice.poNumber).toBeNull();
+      expect(invoice.lineItems).toEqual([]);
+      expect(invoice.overallConfidence).toBeNull();
+      expect(invoice.ocrRawText).toBeNull();
+      expect(invoice.extractedRawJson).toBeNull();
+      expect(invoice.validationErrors).toBeNull();
+      expect(invoice.fieldConfidences).toBeNull();
+      expect(invoice.duplicateOf).toBeNull();
+      expect(invoice.processedAt).toBeNull();
+      expect(invoice.reviewedAt).toBeNull();
+      expect(invoice.reviewedBy).toBeNull();
+      expect(invoice.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('should reprocess from rejected status', () => {
+      const invoice = createInvoiceInStatus('rejected');
+      invoice.resumeForReprocess();
+      expect(invoice.status).toBe('pending');
+      expect(invoice.invoiceNumber).toBeNull();
+    });
+
+    it('should reprocess from error status', () => {
+      const invoice = createInvoiceInStatus('error');
+      invoice.resumeForReprocess();
+      expect(invoice.status).toBe('pending');
+    });
+
+    it('should reprocess from duplicate status and clear duplicateOf', () => {
+      const invoice = createInvoiceInStatus('duplicate');
+      expect(invoice.duplicateOf).toBe('inv-original');
+      invoice.resumeForReprocess();
+      expect(invoice.status).toBe('pending');
+      expect(invoice.duplicateOf).toBeNull();
+    });
+
+    it('should throw DomainError when reprocessing from pending', () => {
+      const invoice = createInvoiceInStatus('pending');
+      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+      expect(() => invoice.resumeForReprocess()).toThrow(/Cannot reprocess/);
+    });
+
+    it('should throw DomainError when reprocessing from processing', () => {
+      const invoice = createInvoiceInStatus('processing');
+      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+    });
+
+    it('should throw DomainError when reprocessing from needs_review', () => {
+      const invoice = createInvoiceInStatus('needs_review');
+      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+    });
+
+    it('should throw DomainError when reprocessing from extracted', () => {
+      const invoice = createInvoiceInStatus('extracted');
+      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+    });
+
+    it('should throw DomainError when reprocessing from validated', () => {
+      const invoice = createInvoiceInStatus('validated');
+      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+    });
+
+    it('should throw DomainError when reprocessing from mapped', () => {
+      const invoice = createInvoiceInStatus('mapped');
+      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+    });
+
+    it('should preserve id, batchId, filename, storagePath, fileHash, fileSizeBytes, pageCount, createdAt', () => {
+      const invoice = createInvoiceInStatus('approved');
+      invoice.resumeForReprocess();
+      expect(invoice.id).toBe('inv-reprocess');
+      expect(invoice.batchId).toBe('b-1');
+      expect(invoice.originalFilename).toBe('test.pdf');
+      expect(invoice.storagePath).toBe('/p/test.pdf');
+      expect(invoice.fileHash).toBe('hash123');
+      expect(invoice.fileSizeBytes).toBe(1024);
+      expect(invoice.pageCount).toBe(2);
+      expect(invoice.createdAt).toEqual(new Date('2026-04-07'));
+    });
+  });
+
   describe('toProps', () => {
     it('should return plain object with all properties', () => {
       const invoice = createInvoice({ id: 'inv-test' });

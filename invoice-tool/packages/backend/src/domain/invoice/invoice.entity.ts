@@ -21,7 +21,7 @@ export interface CreateInvoiceProps {
 
 /** Props for setting extracted data on an invoice */
 export interface ExtractedDataProps {
-  readonly schemaId: string;
+  readonly schemaId: string | null;
   readonly classificationMethod: ClassificationMethod;
   readonly classificationConfidence: number;
   readonly invoiceNumber: string | null;
@@ -306,6 +306,50 @@ export class Invoice {
    */
   markAsError(): void {
     this.props = { ...this.props, status: 'error', updatedAt: new Date() };
+  }
+
+  /**
+   * Resume an invoice for reprocessing.
+   * Resets to pending status and wipes all extracted data.
+   * Only allowed from terminal states: approved, rejected, error, duplicate.
+   * @throws DomainError if not in a reprocessable status
+   */
+  resumeForReprocess(): void {
+    const reprocessableStatuses: InvoiceStatus[] = ['approved', 'rejected', 'error', 'duplicate'];
+    if (!reprocessableStatuses.includes(this.props.status)) {
+      throw new DomainError(`Cannot reprocess invoice in "${this.props.status}" status`);
+    }
+    this.props = {
+      ...this.props,
+      status: 'pending',
+      schemaId: null,
+      classificationMethod: null,
+      classificationConfidence: null,
+      invoiceNumber: null,
+      invoiceSymbol: null,
+      invoiceDate: null,
+      invoiceType: null,
+      sellerName: null,
+      sellerTaxId: null,
+      buyerName: null,
+      buyerTaxId: null,
+      subtotal: null,
+      vatRate: null,
+      vatAmount: null,
+      total: null,
+      poNumber: null,
+      lineItems: [],
+      overallConfidence: null,
+      ocrRawText: null,
+      extractedRawJson: null,
+      validationErrors: null,
+      fieldConfidences: null,
+      duplicateOf: null,
+      processedAt: null,
+      reviewedAt: null,
+      reviewedBy: null,
+      updatedAt: new Date(),
+    };
   }
 
   /**

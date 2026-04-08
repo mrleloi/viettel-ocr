@@ -1,6 +1,6 @@
 # Agent Notes (Persistent Memory)
 
-> Invoice Processing Tool MVP. Updated: 2026-04-07 (Session 10 complete).
+> Invoice Processing Tool MVP. Updated: 2026-04-08 (Phase 1 complete, Phase 2 starting).
 
 ## Project Knowledge
 
@@ -9,42 +9,68 @@
 - **Users**: ~5 (operators + configurators), localhost deployment
 - **Volume**: ~1000 PDFs/day, ~10 invoice types
 - **AI**: Gemini 2.0 Flash for OCR + extraction (~$3/day)
-- **Architecture**: Clean Architecture + DDD, 6 bounded contexts
+- **Architecture**: Clean Architecture + DDD, 7 bounded contexts (6 original + NOTIFICATION in Phase 2)
 
 ## Current Progress
 
-- **Phase**: Phase 4 — Frontend (4.1-4.9 complete, Phase 3 fully done)
-- **Domain entities**: 8 implemented (Invoice, Schema, FingerprintRule, FieldDefinition, Batch, Product, SyncConflict, Mapping)
+- **Phase**: Phase 2 — Depth over Breadth (session 18 complete)
+- **Phase 1**: ✅ COMPLETE (15 sessions, 406 tests, all pages functional)
+- **Phase 2 Plan**: `tasks/09-phase2-master-plan.md` — 11 sessions (16–26), 5 sub-phases, 9 user-reported issues
+- **Phase 2 Progress**: Sessions 16-18 ✅ (Issues #1, #2, #3, #8 fixed) — 2.A COMPLETE. Sessions 19-24 ✅ (Issues #4, #5, #7, #9 fixed). Session 25 ✅ (Issues #6, #7 partial — conflict UI + mapping from review done)
+- **Domain entities**: 8 implemented (Invoice, Schema, FingerprintRule, FieldDefinition, Batch, Product, SyncConflict, Mapping) + 1 planned (Notification)
 - **Value objects**: 3 implemented (TaxId, Money, Confidence)
-- **Repository interfaces**: 8 created
+- **Repository interfaces**: 8 created + 1 planned (INotificationRepository)
 - **Repository implementations**: 8 Drizzle + SQLite repos
 - **Domain services**: 5 implemented (FingerprintService, ValidatorService, ConfidenceCalculator, FuzzyMatcher, PromptBuilder)
 - **External integrations**: 3 implemented (GeminiClient, ViettelProductClient, LocalFileStorage)
 - **Domain port interfaces**: 4 (IOcrService, IProductApiClient, IFileStorage, IJobQueue)
-- **Infrastructure services**: SqliteJobQueue, QueueWorkerService
-- **Use cases**: 10 implemented (Upload, Process, Approve, Reject, Edit, CreateSchema, UpdateSchema, SyncProducts, CreateMapping, CreateExport)
+- **Infrastructure services**: SqliteJobQueue, QueueWorkerService, EventBusService
+- **Use cases**: 10 implemented (Upload, Process, Approve, Reject, Edit, CreateSchema, UpdateSchema, SyncProducts, CreateMapping, CreateExport) + ~6 planned for Phase 2
 - **NestJS modules**: 8 (Config, Database, AI, ExternalApi, FileStorage, Queue, Application, Interface)
-- **Controllers**: 7 (Health, Batch, Invoice, Schema, Mapping, Product, Export)
-- **DTOs**: 17 (8 input + 9 response) with class-validator + Swagger decorators
-- **API endpoints**: 17 REST endpoints across 7 controllers
+- **Controllers**: 7 (Health, Batch, Invoice, Schema, Mapping, Product, Export) + 1 planned (Notification)
+- **DTOs**: 17 (8 input + 9 response) — Phase 2 will extend InvoiceResponseDto significantly
+- **API endpoints**: 17 REST endpoints across 7 controllers + planned: file serve, trace, notification CRUD
 - **Swagger UI**: `/api/docs` (dev mode only) — auto-generated from controller decorators
 - **Frontend API client**: Typed `apiClient` with methods for all 17 endpoints
-- **Frontend pages**: Dashboard ✅, Upload ✅, Review Queue ✅, Invoice Detail ✅, Schemas (list+wizard+detail) ✅, Mappings ✅, Products ✅, Exports ✅, Diagnostics ✅ — ALL PAGES DONE
+- **Frontend pages**: ALL 9 PAGES DONE (Phase 1). Phase 2 rewrites: review detail, schema wizard, mappings scoping
 - **Frontend layout**: AppShell (collapsible sidebar + header) with Vietnamese labels, 12 routes
-- **Frontend components**: 20+ components (StatCard, RecentBatchesTable, ActivityFeed, FileDropzone, UploadResult, ReviewFilter, InvoiceTable, RejectDialog, SchemaCard, CreateMappingDialog, MappingTable, ProductTable, SyncResultBanner, ExportForm, ExportResult, HealthCard, StatsGrid)
-- **Tests**: 391 total (193 domain + 109 infra + 59 application + 30 interface, all passing)
-- **Next session**: Session 15 — SSE integration + setup/start scripts + E2E testing
+- **Frontend components**: 20+ components
+- **Tests**: 533 total (backend)
+- **Next session**: Session 26 — Filtered exports + batch export from review (Phase 2.E)
+
+## Phase 2 Context (9 User-Reported Issues)
+
+| # | Issue | Sub-Phase | Sessions |
+|---|-------|-----------|----------|
+| 1 | Dashboard rows not clickable | 2.A | 16 |
+| 2 | Sidebar badge hardcoded to 0 | 2.A | 16 |
+| 3 | Notifications don't work | 2.A | 17, 18 |
+| 4 | Duplicate handling opaque, no reprocess | 2.B | 19 |
+| 5 | Auto-create schema on new pattern | 2.D | 24 |
+| 6 | No real review detail / verification view | 2.C | 20, 21 |
+| 7 | Schema creation from uploaded sample impossible | 2.D | 22, 23 |
+| 8 | Products page empty, sync 500 | 2.A + 2.E | 16, 25 |
+| 9 | Mapping page flat, not field-by-field per schema | 2.D | 22, 23 |
+
+## Phase 2 Risk Notes (from `09-phase2-master-plan.md §5`)
+
+- **Session 19**: `resumeForReprocess()` transition will break 3–5 existing tests in `invoice.entity.spec.ts`
+- **Session 21**: `react-pdf` with Next.js Turbopack may need `next/dynamic` import to avoid SSR errors
+- **Session 22**: New `outputKey` column on `field_definitions` — `CREATE TABLE IF NOT EXISTS` won't add it
+- **Sessions 20 & 22**: Both extend `InvoiceResponseDto` — run sequentially, never parallel
+- **No parallel session work.** Dependency graph: `16→17→18`, `16→19`, `16→20→21`, `20→22→23→24`, `24→25→26`
 
 ## Bounded Contexts
 
 | Context | Entities | Services | Status |
 |---------|----------|----------|--------|
-| INTAKE | Batch ✅, Invoice ✅ | FilePreprocessor, DedupChecker | Entities + repos + upload use case done |
-| PROCESSING | (uses Invoice ✅) | Pipeline, Classifier, Extractor, **ValidatorService ✅**, **ConfidenceCalculator ✅**, Router | Process use case done |
-| SCHEMA | Schema ✅, FingerprintRule ✅, FieldDefinition ✅ | **FingerprintService ✅**, **PromptBuilder ✅** | CRUD use cases done ✅ |
-| CATALOG | Product ✅, SyncConflict ✅, Mapping ✅ | SyncService ✅, **FuzzyMatcher ✅** | Sync + Mapping use cases done ✅ |
-| REVIEW | (uses Invoice ✅) | **Approve ✅**, **Reject ✅**, **Edit ✅** | Use cases done ✅ |
-| OUTPUT | Export ✅ | **CreateExport ✅** | Export use case done ✅ |
+| INTAKE | Batch ✅, Invoice ✅ | FilePreprocessor, DedupChecker | Phase 2: add duplicate policy + reprocess (session 19) |
+| PROCESSING | (uses Invoice ✅) | Pipeline, Classifier, Extractor, **ValidatorService ✅**, **ConfidenceCalculator ✅**, Router | Phase 2: add reprocess use case, maybe-create-schema stage |
+| SCHEMA | Schema ✅, FingerprintRule ✅, FieldDefinition ✅ | **FingerprintService ✅**, **PromptBuilder ✅** | Phase 2: CRUD endpoints for fields/fingerprints, preview, wizard rewrite (sessions 22-24) |
+| CATALOG | Product ✅, SyncConflict ✅, Mapping ✅ | SyncService ✅, **FuzzyMatcher ✅** | Phase 2: conflict resolution UI, mappings from review (session 25) |
+| REVIEW | (uses Invoice ✅) | **Approve ✅**, **Reject ✅**, **Edit ✅** | Phase 2: PDF viewer, per-field confidence, trace timeline (sessions 20-21) |
+| OUTPUT | Export ✅ | **CreateExport ✅** | Phase 2: filtered export, batch export (session 26) |
+| **NOTIFICATION** | Notification ✅ | CreateNotification ✅, ListNotifications ✅, MarkNotificationRead ✅ | ✅ COMPLETE (sessions 17-18) — domain → repo → use cases → controller → SSE → bell UI |
 
 ## Learned Rules
 
@@ -56,6 +82,11 @@
 - FuzzyMatcher uses `ProductData` plain interface — not the Product entity
 - PromptBuilder uses `SchemaData` and `FieldData` plain interfaces — not entity classes
 - FuzzyMatcher composite scoring: 0.5 × Jaccard + 0.3 × LCS + 0.2 × brand_bonus — exact single-word match without brand = 0.8 (not 1.0)
+- **Phase 2**: Notification creation MUST go through event-bus emit → NotificationUseCase pattern. NEVER create notifications as side effects inside existing use cases.
+- **Phase 2**: `ALTER TABLE ADD COLUMN` needed when adding columns to existing tables (not just `CREATE TABLE IF NOT EXISTS`)
+- **`outputKey` already in schema**: The `field_definitions` table had `output_key` from Phase 1 scaffolding — no migration needed for session 22
+- **File upload inline type**: `{ originalname: string; buffer: Buffer; mimetype: string }` avoids @types/multer issues (same pattern as batch.controller.ts)
+- **Preview-style POST**: No resource created → use `@HttpCode(200)` to avoid NestJS default 201
 
 ### NestJS / Drizzle
 - **DI Token Convention**: Domain interface name as string token → `{ provide: 'ISchemaRepository', useClass: SchemaRepositoryImpl }`
@@ -106,7 +137,7 @@
 - Always read session-handoff.md FIRST
 - Always update agent-notes.md LAST
 - "What's Next" must reference master plan verbatim
-- Never invent session IDs
+- Never invent session IDs — sessions 16–26 come from `09-phase2-master-plan.md` ONLY
 - **Action Guide is MANDATORY** — check `tasks/action-guides/s{NN}-*.md` BEFORE any implementation
 - If action guide missing → STOP → read `action-guide-creator/skill.md` → follow template with ALL 7 sections (§0-§6) → pass 11-point quality checklist → THEN implement
 - At session END, create action guide for NEXT session following SAME template
@@ -146,12 +177,14 @@
 - Test helper (`createTestDb()`) has its own DDL — but the production path (`createDatabase()`) also needs it
 - When adding a new table to schema: update BOTH `initializeTables()` in `connection.ts` AND `createTestDb()` in test helper
 - **Root cause**: 8 sessions passed with no tables in production DB because tests use in-memory DB with manual DDL
+- **Phase 2 note**: Adding columns to existing tables requires `ALTER TABLE ADD COLUMN` — see `.claude/rules/architecture.md`
 
 ### Backend Smoke Test (Session 13)
 - **`tsc --noEmit` + `jest --bail` are NOT sufficient** to verify backend health — they don't exercise the NestJS DI container at runtime
 - **MUST run `smoke-test.ps1`** after ANY change to: `*.module.ts`, `@Inject()` decorators, or database schema
 - Smoke test script: `scripts/smoke-test.ps1` — starts server, waits for "successfully started", kills, returns exit code
 - Added to `complete-session.ps1` as Check 6 and to `quality-gate-pipeline.md` as Gate 1.5
+- **Phase 2 DI-touching sessions**: 16, 17, 19, 20, 22, 24 — smoke test MANDATORY for these
 
 ### Type Gotchas (Session 7)
 - `LineItemProps` (shared package) requires `vatRate: number | null`, `vatAmount: number | null`, `totalWithVat: number | null` — not just basic fields
@@ -227,10 +260,10 @@
 | Business Spec | `tasks/01-business-spec.md` |
 | Database Design | `tasks/04-database-design.md` |
 | Low-Level Design | `tasks/06-low-level-design.md` |
-| Master Plan | `tasks/08-master-plan.md` |
+| **Master Plan (Phase 2 — ACTIVE)** | `tasks/09-phase2-master-plan.md` |
+| Master Plan (Phase 1 — historical) | `tasks/08-master-plan.md` |
 | Session Handoff | `.context/session-handoff.md` |
 | Config | `config.env` |
 | API Client | `packages/frontend/src/lib/api-client.ts` |
 | Vietnamese Text | `packages/frontend/src/lib/constants.ts` |
 | App Layout | `packages/frontend/src/components/layout/AppShell.tsx` |
-

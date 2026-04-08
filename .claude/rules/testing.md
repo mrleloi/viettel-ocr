@@ -16,16 +16,23 @@
 
 ```
          ╱╲
-        ╱  ╲         E2E (5-10): Full upload→export flow
+        ╱  ╲         E2E (8-15): Full upload→export flow
        ╱    ╲
       ╱──────╲
-     ╱        ╲      Integration (30-50): Use case + DB/mocks
+     ╱        ╲      Integration (50-80): Use case + DB/mocks
     ╱          ╲
    ╱────────────╲
-  ╱              ╲   Unit (100-200): Domain entities, services, value objects
+  ╱              ╲   Unit (200-300): Domain entities, services, value objects
  ╱                ╲
 ╱──────────────────╲
 ```
+
+## Test Count Targets
+
+| Milestone | Total | Domain | Infra | App | Interface | E2E |
+|-----------|-------|--------|-------|-----|-----------|-----|
+| Phase 1 (done) | 406 | 193 | 109 | 59 | 37 | 8 |
+| Phase 2 DOD | ≥480 | ~220 | ~130 | ~80 | ~50 | ~15 |
 
 ## Unit Tests (Domain Layer)
 - No mocks needed (pure logic)
@@ -64,3 +71,12 @@
 - Generated code (OpenAPI client)
 - Simple getters with no logic
 - Third-party library internals
+
+## Phase 2 Testing Notes
+
+> Sessions 19 and 24 modify existing domain entity transitions — expect test updates.
+
+- **Session 19 (reprocess)**: `Invoice` entity gets `resumeForReprocess()` transition. This changes terminal-state invariants — expect 3–5 test updates in `invoice.entity.spec.ts`. Verify existing tests PASS before adding new tests.
+- **Session 24 (auto-create-schema)**: `Batch` entity gets `autoCreateSchemaOnNewPattern` field. Process pipeline gets new "maybe-create-schema" stage — test the branch/no-branch paths.
+- **Session 17 (notifications)**: New `Notification` entity + repo + use cases. Verify event-bus emit pattern in tests (emit mock, assert notification created via handler, NOT directly via repo in the emitting use case).
+- **When modifying existing entities**: Always run the full existing test suite FIRST to establish baseline, then add new tests, then implement. Never mix test modification with new feature tests in the same commit.

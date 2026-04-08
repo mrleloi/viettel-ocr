@@ -60,6 +60,7 @@ export class FieldDefinitionRepositoryImpl implements IFieldDefinitionRepository
       isRequired: row.isRequired,
       validationRules: row.validationRules ?? null,
       extractionHint: row.extractionHint ?? null,
+      outputKey: row.outputKey ?? null,
       sortOrder: row.sortOrder,
     };
   }
@@ -79,6 +80,7 @@ export class FieldDefinitionRepositoryImpl implements IFieldDefinitionRepository
       isRequired: entity.isRequired,
       validationRules: entity.validationRules,
       extractionHint: entity.extractionHint,
+      outputKey: entity.outputKey,
       sortOrder: entity.sortOrder,
     };
   }

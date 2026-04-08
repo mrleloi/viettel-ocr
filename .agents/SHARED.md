@@ -55,6 +55,7 @@
 | Processing stage: spec → service → test | `.agents/workflows/implement-pipeline-stage.md` | Developer |
 | Quality gate: tsc → jest → drift-check | `.agents/workflows/quality-gate-pipeline.md` | Both |
 | Session lifecycle: read → work → update | `.agents/workflows/session-handoff.md` | Both |
+| End session + auto-spawn next | `.agents/workflows/end-session.md` | Both |
 
 ## Command Router (Universal)
 
@@ -104,6 +105,15 @@ Every action guide and plan MUST include:
 6. **Quality gate**: exactly what to verify before claiming done
 7. **Handoff notes**: what the next session needs to know
 
+### Phase 2 Additional Requirements
+
+> Phase 2 action guides MUST also include:
+
+8. **Issue reference**: which Issue # (1–9) from `09-phase2-master-plan.md §1` this session addresses
+9. **Spec coverage row**: which F01–F11 row in the spec coverage matrix (§2) moves to ✅
+10. **Phase exit gate**: the sub-phase gate criteria from §4 (e.g., "2.A gate: backend tests ≥ 425")
+11. **Risk notes**: any applicable risk from §5 for this session
+
 ---
 
 ## Source of Truth Hierarchy
@@ -112,8 +122,9 @@ Every action guide and plan MUST include:
 |---|---|---|
 | **1st** | `tasks/01-business-spec.md` | What to build |
 | **2nd** | `tasks/03-*` through `tasks/07-*` | How to build it |
-| **3rd** | `tasks/08-master-plan.md` | In what order |
+| **3rd** | `tasks/09-phase2-master-plan.md` | In what order (Phase 2 — ACTIVE) |
 | **4th** | `tasks/action-guides/*.md` | Step-by-step per session |
 | **5th** | `.context/session-handoff.md` | Current state |
+| Ref | `tasks/08-master-plan.md` | Phase 1 historical (sessions 1–15, complete) |
 
 If sources conflict, higher priority wins.

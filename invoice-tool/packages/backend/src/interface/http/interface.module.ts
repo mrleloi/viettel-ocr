@@ -10,6 +10,7 @@ import { ExportController } from './export.controller';
 import { HealthController } from './health.controller';
 import { EventsController } from './events.controller';
 import { EventBusService } from './event-bus.service';
+import { NotificationController } from './notification.controller';
 
 /**
  * InterfaceModule — provides all REST controllers and the SSE event bus.
@@ -18,6 +19,7 @@ import { EventBusService } from './event-bus.service';
  * DatabaseModule is @Global(), so repository tokens are available automatically.
  * FileStorageModule imported for ExportController's direct IFileStorage dependency.
  * EventBusService is exported so other modules can publish events.
+ * The string-token alias 'EventBusService' enables @Optional() injection in use cases.
  */
 @Module({
   imports: [ApplicationModule, FileStorageModule],
@@ -30,8 +32,12 @@ import { EventBusService } from './event-bus.service';
     ProductController,
     ExportController,
     EventsController,
+    NotificationController,
   ],
-  providers: [EventBusService],
-  exports: [EventBusService],
+  providers: [
+    EventBusService,
+    { provide: 'EventBusService', useExisting: EventBusService },
+  ],
+  exports: [EventBusService, 'EventBusService'],
 })
 export class InterfaceModule {}

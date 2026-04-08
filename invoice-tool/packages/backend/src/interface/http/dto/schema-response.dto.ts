@@ -45,3 +45,24 @@ export class CreateSchemaResponseDto {
   @ApiProperty({ description: 'Number of field definitions created' })
   fieldsCreated!: number;
 }
+
+/**
+ * Response DTO for schema extraction preview.
+ * Returns extracted fields without creating an Invoice or Batch.
+ */
+export class PreviewSchemaResponseDto {
+  @ApiProperty({ description: 'Schema ID used for extraction' })
+  schemaId!: string;
+
+  @ApiProperty({ description: 'Schema display name' })
+  schemaName!: string;
+
+  @ApiProperty({ description: 'Extracted field values from the PDF', example: {} })
+  extractedFields!: Record<string, unknown>;
+
+  @ApiProperty({ description: 'Raw OCR text from the PDF' })
+  rawText!: string;
+
+  @ApiProperty({ description: 'Per-field confidence scores (0.0-1.0)', example: {} })
+  fieldConfidences!: Record<string, number>;
+}

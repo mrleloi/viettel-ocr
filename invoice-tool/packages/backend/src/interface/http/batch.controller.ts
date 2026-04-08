@@ -63,6 +63,8 @@ export class BatchController {
       })),
       uploadMode: dto.uploadMode,
       hintSchemaId: dto.hintSchemaId,
+      onDuplicate: (dto.onDuplicate as 'skip' | 'process_anyway' | 'flag_only') ?? undefined,
+      autoCreateSchemaOnNewPattern: dto.autoCreateSchemaOnNewPattern ?? false,
     });
 
     return {

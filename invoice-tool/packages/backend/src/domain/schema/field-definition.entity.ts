@@ -14,6 +14,7 @@ export interface CreateFieldDefinitionProps {
   readonly isRequired: boolean;
   readonly validationRules?: string | null;
   readonly extractionHint?: string | null;
+  readonly outputKey?: string | null;
   readonly sortOrder: number;
 }
 
@@ -23,6 +24,7 @@ export interface UpdateFieldDefinitionProps {
   readonly isRequired?: boolean;
   readonly validationRules?: string | null;
   readonly extractionHint?: string | null;
+  readonly outputKey?: string | null;
   readonly sortOrder?: number;
 }
 
@@ -66,6 +68,7 @@ export class FieldDefinition {
       isRequired: input.isRequired,
       validationRules: input.validationRules ?? null,
       extractionHint: input.extractionHint ?? null,
+      outputKey: input.outputKey ?? null,
       sortOrder: input.sortOrder,
     });
   }
@@ -88,6 +91,7 @@ export class FieldDefinition {
   get isRequired(): boolean { return this.props.isRequired; }
   get validationRules(): string | null { return this.props.validationRules; }
   get extractionHint(): string | null { return this.props.extractionHint; }
+  get outputKey(): string | null { return this.props.outputKey; }
   get sortOrder(): number { return this.props.sortOrder; }
 
   /**
@@ -101,6 +105,7 @@ export class FieldDefinition {
       isRequired: updates.isRequired ?? this.props.isRequired,
       validationRules: updates.validationRules !== undefined ? updates.validationRules : this.props.validationRules,
       extractionHint: updates.extractionHint !== undefined ? updates.extractionHint : this.props.extractionHint,
+      outputKey: updates.outputKey !== undefined ? updates.outputKey : this.props.outputKey,
       sortOrder: updates.sortOrder ?? this.props.sortOrder,
     };
   }

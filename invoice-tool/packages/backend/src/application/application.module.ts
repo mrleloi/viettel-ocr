@@ -13,6 +13,11 @@ import { UpdateSchemaUseCase } from './schema/update-schema.use-case';
 import { SyncProductsUseCase } from './product/sync-products.use-case';
 import { CreateMappingUseCase } from './mapping/create-mapping.use-case';
 import { CreateExportUseCase } from './export/create-export.use-case';
+import { CreateNotificationUseCase } from './notification/create-notification.use-case';
+import { ListNotificationsUseCase } from './notification/list-notifications.use-case';
+import { MarkNotificationReadUseCase } from './notification/mark-notification-read.use-case';
+import { ReprocessInvoiceUseCase } from './processing/reprocess-invoice.use-case';
+import { PreviewSchemaExtractionUseCase } from './schema/preview-schema-extraction.use-case';
 
 /**
  * Application module — provides all use cases.
@@ -39,6 +44,11 @@ import { CreateExportUseCase } from './export/create-export.use-case';
     SyncProductsUseCase,
     CreateMappingUseCase,
     CreateExportUseCase,
+    CreateNotificationUseCase,
+    ListNotificationsUseCase,
+    MarkNotificationReadUseCase,
+    ReprocessInvoiceUseCase,
+    PreviewSchemaExtractionUseCase,
   ],
   exports: [
     UploadBatchUseCase,
@@ -51,6 +61,11 @@ import { CreateExportUseCase } from './export/create-export.use-case';
     SyncProductsUseCase,
     CreateMappingUseCase,
     CreateExportUseCase,
+    CreateNotificationUseCase,
+    ListNotificationsUseCase,
+    MarkNotificationReadUseCase,
+    ReprocessInvoiceUseCase,
+    PreviewSchemaExtractionUseCase,
   ],
 })
 export class ApplicationModule {}

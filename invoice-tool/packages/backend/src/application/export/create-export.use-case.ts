@@ -14,6 +14,8 @@ export interface CreateExportInput {
   readonly dateFrom?: string;
   /** Optional date range end (ISO string) */
   readonly dateTo?: string;
+  /** Optional status filter (e.g. 'approved') */
+  readonly statusFilter?: string;
 }
 
 /** Output after export creation */
@@ -103,14 +105,23 @@ export class CreateExportUseCase {
         }
       }
     } else {
-      // For now, without a general query method, we return empty
-      // In a real implementation this would use a query builder
-      // The batch-based filter is the primary use case
-      return [];
+      // Use findByFilters for non-batch exports
+      const invoices = await this.invoiceRepo.findByFilters({
+        status: input.statusFilter,
+        schemaId: input.schemaId,
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+      });
+      for (const inv of invoices) {
+        allInvoices.push(this.toExportable(inv));
+      }
     }
 
     // Apply additional filters
     return allInvoices.filter(inv => {
+      if (input.statusFilter && inv.status !== input.statusFilter) {
+        return false;
+      }
       if (input.schemaId && inv.schemaId !== input.schemaId) {
         return false;
       }

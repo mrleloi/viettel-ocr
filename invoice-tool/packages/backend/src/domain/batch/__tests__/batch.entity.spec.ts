@@ -39,6 +39,20 @@ describe('Batch', () => {
     it('should throw DomainError for invalid uploadMode', () => {
       expect(() => createBatch({ uploadMode: 'invalid' })).toThrow(DomainError);
     });
+
+    it('should default autoCreateSchemaOnNewPattern to false', () => {
+      const batch = createBatch();
+      expect(batch.autoCreateSchemaOnNewPattern).toBe(false);
+    });
+
+    it('should accept autoCreateSchemaOnNewPattern = true', () => {
+      const batch = Batch.create({
+        uploadMode: 'single_ncc',
+        totalFiles: 1,
+        autoCreateSchemaOnNewPattern: true,
+      });
+      expect(batch.autoCreateSchemaOnNewPattern).toBe(true);
+    });
   });
 
   describe('startProcessing', () => {
@@ -135,6 +149,7 @@ describe('Batch', () => {
         status: 'processing',
         createdAt: new Date('2026-04-07'),
         completedAt: null,
+        autoCreateSchemaOnNewPattern: false,
       });
       expect(batch.id).toBe('batch-1');
       expect(batch.processedFiles).toBe(8);

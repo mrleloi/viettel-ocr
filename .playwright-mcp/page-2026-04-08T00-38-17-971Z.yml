@@ -1,0 +1,125 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Điều hướng chính" [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: V
+        - generic [ref=e6]:
+          - generic [ref=e7]: Viettel OCR
+          - generic [ref=e8]: Xử lý hóa đơn tự động
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: Chính
+          - link "Tổng quan" [ref=e12] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e13]: 📊
+            - generic [ref=e14]: Tổng quan
+          - link "Tải lên" [ref=e15] [cursor=pointer]:
+            - /url: /upload
+            - generic [ref=e16]: 📤
+            - generic [ref=e17]: Tải lên
+          - link "Kiểm duyệt Mục cần xử lý" [ref=e18] [cursor=pointer]:
+            - /url: /review
+            - generic [ref=e19]: ✅
+            - generic [ref=e20]: Kiểm duyệt
+            - generic "Mục cần xử lý" [ref=e21]: "0"
+        - generic [ref=e22]:
+          - generic [ref=e23]: Quản lý
+          - link "Mẫu hóa đơn" [ref=e24] [cursor=pointer]:
+            - /url: /schemas
+            - generic [ref=e25]: 📋
+            - generic [ref=e26]: Mẫu hóa đơn
+          - link "Sản phẩm" [ref=e27] [cursor=pointer]:
+            - /url: /products
+            - generic [ref=e28]: 📦
+            - generic [ref=e29]: Sản phẩm
+          - link "Ánh xạ SP" [ref=e30] [cursor=pointer]:
+            - /url: /mappings
+            - generic [ref=e31]: 🔗
+            - generic [ref=e32]: Ánh xạ SP
+        - generic [ref=e33]:
+          - generic [ref=e34]: Báo cáo
+          - link "Xuất dữ liệu" [ref=e35] [cursor=pointer]:
+            - /url: /exports
+            - generic [ref=e36]: 📁
+            - generic [ref=e37]: Xuất dữ liệu
+          - link "Chẩn đoán" [ref=e38] [cursor=pointer]:
+            - /url: /diagnostics
+            - generic [ref=e39]: 🔧
+            - generic [ref=e40]: Chẩn đoán
+      - button "Thu gọn menu" [ref=e42] [cursor=pointer]:
+        - generic [ref=e43]: ◀
+        - generic [ref=e44]: Thu gọn
+    - generic [ref=e45]:
+      - banner [ref=e46]:
+        - generic [ref=e47]:
+          - button "Mở/đóng menu" [ref=e48] [cursor=pointer]: ☰
+          - heading "Viettel OCR" [level=1] [ref=e170]
+        - generic [ref=e50]:
+          - button "Thông báo" [ref=e51] [cursor=pointer]: 🔔
+          - generic "Tài khoản" [ref=e53] [cursor=pointer]: OP
+      - main [ref=e54]:
+        - generic [ref=e171]:
+          - button "← Quay lại danh sách" [ref=e173] [cursor=pointer]
+          - generic [ref=e174]:
+            - generic [ref=e175]:
+              - generic [ref=e176]:
+                - generic [ref=e177]: Số hóa đơn
+                - heading "80321" [level=2] [ref=e178]
+              - generic [ref=e179]: Cần kiểm duyệt
+            - generic [ref=e181]:
+              - generic [ref=e182]: 6%
+              - generic [ref=e183]: Độ tin cậy
+          - generic [ref=e184]:
+            - generic [ref=e185]:
+              - generic [ref=e186]:
+                - heading "📋 Dữ liệu trích xuất" [level=3] [ref=e187]
+                - button "✏️ Chế độ sửa" [ref=e188] [cursor=pointer]
+              - generic [ref=e189]:
+                - generic [ref=e190]:
+                  - generic [ref=e191]: Số hóa đơn
+                  - generic [ref=e192]: "80321"
+                - generic [ref=e193]:
+                  - generic [ref=e194]: Người bán
+                  - generic [ref=e195]: CHI NHÁNH CÔNG TY CỔ PHẦN THẾ GIỚI SỐ
+                - generic [ref=e196]:
+                  - generic [ref=e197]: Người bán Mã số thuế
+                  - generic [ref=e198]: 0302861742-001
+                - generic [ref=e199]:
+                  - generic [ref=e200]: Người mua
+                  - generic [ref=e201]: CHI NHÁNH CÔNG TY TNHH NHÀ NƯỚC MỘT THÀNH VIÊN THƯƠNG MẠI VÀ XUẤT NHẬP KHẨU VIETTEL-TRUNG TÂM BÁN LẺ
+                - generic [ref=e202]:
+                  - generic [ref=e203]: Người mua Mã số thuế
+                  - generic [ref=e204]: 0104831030-091
+                - generic [ref=e205]:
+                  - generic [ref=e206]: Tổng tiền
+                  - generic [ref=e207]: —
+                - generic [ref=e208]:
+                  - generic [ref=e209]: Thuế VAT
+                  - generic [ref=e210]: —
+                - generic [ref=e211]:
+                  - generic [ref=e212]: Ngày hóa đơn
+                  - generic [ref=e213]: 00:00 04/07/2026
+                - generic [ref=e214]:
+                  - generic [ref=e215]: Tiền tệ
+                  - generic [ref=e216]: VND
+            - generic [ref=e217]:
+              - generic [ref=e218]:
+                - heading "ℹ️ Thông tin bổ sung" [level=3] [ref=e220]
+                - generic [ref=e221]:
+                  - generic [ref=e222]:
+                    - generic [ref=e223]: Mã lô
+                    - generic [ref=e224]: 30779a37-2a9f-4fd2-923a-a8c494c45d32
+                  - generic [ref=e225]:
+                    - generic [ref=e226]: Ngày tạo
+                    - generic [ref=e227]: 07:34 08/04/2026
+                  - generic [ref=e228]:
+                    - generic [ref=e229]: Cập nhật lần cuối
+                    - generic [ref=e230]: —
+              - generic [ref=e231]:
+                - heading "⚡ Hành động" [level=3] [ref=e232]
+                - generic [ref=e233]:
+                  - button "✅ Duyệt" [ref=e234] [cursor=pointer]
+                  - button "❌ Từ chối" [ref=e235] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e152] [cursor=pointer]:
+    - img [ref=e153]
+  - alert [ref=e156]

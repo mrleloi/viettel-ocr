@@ -20,4 +20,5 @@ export interface BatchProps {
   readonly status: BatchStatus;
   readonly createdAt: Date;
   readonly completedAt: Date | null;
+  readonly autoCreateSchemaOnNewPattern: boolean;
 }

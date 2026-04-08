@@ -4,8 +4,8 @@
 > Updated after each `/drift-check` run.
 
 ## Last Check
-- **Date**: Not yet run (pre-implementation)
-- **Result**: N/A
+- **Date**: 2026-04-08 (Phase 2 transition)
+- **Result**: Pending — first Phase 2 drift-check should be run at Session 16 start
 
 ## Active Signals
 
@@ -27,6 +27,8 @@
 | FD8 | Use case without integration test | 🟠 MEDIUM | Missing integration coverage |
 | FD9 | Progress tracker out of sync | 🟠 MEDIUM | Dashboard doesn't match reality |
 | FD10 | TODO without context | 🔵 LOW | Deferred work without explanation |
+| FD11 | Notification created directly in use case | 🟡 HIGH | Must use event-bus emit → NotificationUseCase pattern. Direct `notificationRepo.save()` inside UploadBatchUseCase, ProcessInvoiceUseCase, etc. is a coupling violation. (Phase 2) |
+| FD12 | ALTER TABLE missing for new column | 🟡 HIGH | `CREATE TABLE IF NOT EXISTS` won't add columns to existing tables. Phase 2 adds `outputKey` to `field_definitions` (session 22). Must use ALTER TABLE or db-reset. |
 
 ## Resolution Log
 

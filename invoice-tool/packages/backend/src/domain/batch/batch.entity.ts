@@ -10,6 +10,7 @@ export interface CreateBatchProps {
   readonly uploadMode: string;
   readonly totalFiles: number;
   readonly hintSchemaId?: string | null;
+  readonly autoCreateSchemaOnNewPattern?: boolean;
 }
 
 /**
@@ -48,6 +49,7 @@ export class Batch {
       status: 'uploading',
       createdAt: new Date(),
       completedAt: null,
+      autoCreateSchemaOnNewPattern: input.autoCreateSchemaOnNewPattern ?? false,
     });
   }
 
@@ -71,6 +73,7 @@ export class Batch {
   get status(): BatchStatus { return this.props.status; }
   get createdAt(): Date { return this.props.createdAt; }
   get completedAt(): Date | null { return this.props.completedAt; }
+  get autoCreateSchemaOnNewPattern(): boolean { return this.props.autoCreateSchemaOnNewPattern; }
 
   // --- State Transitions ---
 

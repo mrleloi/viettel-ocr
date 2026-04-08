@@ -5,7 +5,8 @@ import type { IJobQueue } from '../../domain/shared/job-queue';
 import { Batch } from '../../domain/batch/batch.entity';
 import { Invoice } from '../../domain/invoice/invoice.entity';
 import { createHash } from 'crypto';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+import { CreateNotificationUseCase } from '../notification/create-notification.use-case';
 
 /** Input for a single file in the upload */
 export interface UploadFileInput {
@@ -17,6 +18,9 @@ export interface UploadFileInput {
   readonly mimeType: string;
 }
 
+/** Duplicate handling policy */
+export type DuplicatePolicy = 'skip' | 'process_anyway' | 'flag_only';
+
 /** Input for the upload batch use case */
 export interface UploadBatchInput {
   /** Files to upload */
@@ -25,6 +29,10 @@ export interface UploadBatchInput {
   readonly uploadMode: string;
   /** Optional schema hint (NCC selection) */
   readonly hintSchemaId?: string | null;
+  /** Duplicate handling policy (default: 'skip') */
+  readonly onDuplicate?: DuplicatePolicy;
+  /** Whether to auto-create schema for new invoice patterns */
+  readonly autoCreateSchemaOnNewPattern?: boolean;
 }
 
 /** Result for a single file */
@@ -69,11 +77,14 @@ const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
  */
 @Injectable()
 export class UploadBatchUseCase {
+  private readonly logger = new Logger(UploadBatchUseCase.name);
+
   constructor(
     @Inject('IBatchRepository') private readonly batchRepo: IBatchRepository,
     @Inject('IInvoiceRepository') private readonly invoiceRepo: IInvoiceRepository,
     @Inject('IFileStorage') private readonly fileStorage: IFileStorage,
     @Inject('IJobQueue') private readonly jobQueue: IJobQueue,
+    @Optional() private readonly createNotification?: CreateNotificationUseCase,
   ) {}
 
   /**
@@ -101,6 +112,7 @@ export class UploadBatchUseCase {
       uploadMode: input.uploadMode,
       totalFiles: Math.max(totalValidFiles, 1),
       hintSchemaId: input.hintSchemaId ?? null,
+      autoCreateSchemaOnNewPattern: input.autoCreateSchemaOnNewPattern ?? false,
     });
 
     // Process each file
@@ -124,6 +136,24 @@ export class UploadBatchUseCase {
       // Check for duplicate
       const existingInvoice = await this.invoiceRepo.findByFileHash(fileHash);
       if (existingInvoice) {
+        const policy = input.onDuplicate ?? 'skip';
+
+        if (policy === 'process_anyway') {
+          // Re-enqueue existing invoice for reprocessing
+          existingInvoice.resumeForReprocess();
+          invoicesToSave.push(existingInvoice);
+          invoiceIdsToEnqueue.push(existingInvoice.id);
+          acceptedCount++;
+          results.push({
+            filename: file.filename,
+            status: 'accepted',
+            invoiceId: existingInvoice.id,
+            duplicateOfId: existingInvoice.id,
+          });
+          continue;
+        }
+
+        // 'skip' or 'flag_only' — create duplicate invoice record
         duplicateCount++;
         const invoice = Invoice.create({
           batchId: batch.id,
@@ -141,6 +171,20 @@ export class UploadBatchUseCase {
           invoiceId: invoice.id,
           duplicateOfId: existingInvoice.id,
         });
+
+        // Emit notification for duplicate detection
+        try {
+          await this.createNotification?.execute({
+            category: 'duplicate_detected',
+            title: 'Phát hiện file trùng lặp',
+            message: `File "${file.filename}" trùng với hóa đơn đã có trong hệ thống.`,
+            relatedEntityType: 'invoice',
+            relatedEntityId: invoice.id,
+          });
+        } catch (err) {
+          this.logger.warn('Failed to create duplicate notification', err);
+        }
+
         continue;
       }
 

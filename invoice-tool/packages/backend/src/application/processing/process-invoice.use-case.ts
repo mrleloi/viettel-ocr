@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import type { IInvoiceRepository } from '../../domain/invoice/invoice.repository';
 import type { IBatchRepository } from '../../domain/batch/batch.repository';
 import type { ISchemaRepository } from '../../domain/schema/schema.repository';
@@ -6,6 +6,8 @@ import type { IFingerprintRuleRepository } from '../../domain/schema/fingerprint
 import type { IFieldDefinitionRepository } from '../../domain/schema/field-definition.repository';
 import type { IOcrService, OcrExtractionResult } from '../../domain/processing/ocr.service';
 import type { IFileStorage } from '../../domain/shared/file-storage';
+import { ProcessingTrace } from '../../domain/processing/processing-trace.entity';
+import type { IProcessingTraceRepository } from '../../domain/processing/processing-trace.repository';
 import { FingerprintService } from '../../domain/schema/fingerprint.service';
 import type { FingerprintRuleData } from '../../domain/schema/fingerprint.service';
 import { PromptBuilder } from '../../domain/schema/prompt-builder.service';
@@ -16,6 +18,8 @@ import { ConfidenceCalculator } from '../../domain/processing/confidence-calcula
 import type { ConfidenceInput } from '../../domain/processing/confidence-calculator.service';
 import type { Invoice, ExtractedDataProps } from '../../domain/invoice/invoice.entity';
 import type { ClassificationMethod } from '@invoice-tool/shared';
+import { CreateNotificationUseCase } from '../notification/create-notification.use-case';
+import { CreateSchemaUseCase } from '../schema/create-schema.use-case';
 
 /** Input for the processing use case */
 export interface ProcessInvoiceInput {
@@ -58,10 +62,12 @@ const DEFAULT_AUTO_APPROVE_THRESHOLD = 0.85;
  * 2. Extract — build prompt, call OCR/AI service
  * 3. Validate — check business rules
  * 4. Score — compute confidence
- * 5. Route — auto-approve or send to review
+ * 5. Maybe-create-schema — auto-create draft schema or emit suggestion
+ * 6. Route — auto-approve or send to review
  */
 @Injectable()
 export class ProcessInvoiceUseCase {
+  private readonly logger = new Logger(ProcessInvoiceUseCase.name);
   private readonly fingerprintService = new FingerprintService();
   private readonly promptBuilder = new PromptBuilder();
   private readonly validator = new ValidatorService();
@@ -75,6 +81,9 @@ export class ProcessInvoiceUseCase {
     @Inject('IFieldDefinitionRepository') private readonly fieldDefRepo: IFieldDefinitionRepository,
     @Inject('IOcrService') private readonly ocrService: IOcrService,
     @Inject('IFileStorage') private readonly fileStorage: IFileStorage,
+    @Optional() private readonly createNotification?: CreateNotificationUseCase,
+    @Optional() @Inject('IProcessingTraceRepository') private readonly traceRepo?: IProcessingTraceRepository,
+    @Optional() private readonly createSchemaUseCase?: CreateSchemaUseCase,
   ) {}
 
   /**
@@ -170,18 +179,15 @@ export class ProcessInvoiceUseCase {
         }
       }
 
-      stages.push({
-        stage: 'classify',
-        status: 'completed',
-        durationMs: Date.now() - stageStart,
-      });
+      const classifyDuration = Date.now() - stageStart;
+      stages.push({ stage: 'classify', status: 'completed', durationMs: classifyDuration });
+      await this.persistTrace(invoice.id, 'classify', 'completed', classifyDuration);
     } catch (error) {
-      stages.push({
-        stage: 'classify',
-        status: 'failed',
-        durationMs: 0,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
+      this.logger.error(`[classify] failed for invoice ${invoice.id}: ${msg}`);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      stages.push({ stage: 'classify', status: 'failed', durationMs: 0, error: errMsg });
+      await this.persistTrace(invoice.id, 'classify', 'failed', 0, errMsg);
       return this.failInvoice(invoice, stages);
     }
 
@@ -234,18 +240,15 @@ export class ProcessInvoiceUseCase {
       invoice.setExtractedData(extracted);
       await this.invoiceRepo.save(invoice);
 
-      stages.push({
-        stage: 'extract',
-        status: 'completed',
-        durationMs: Date.now() - stageStart,
-      });
+      const extractDuration = Date.now() - stageStart;
+      stages.push({ stage: 'extract', status: 'completed', durationMs: extractDuration });
+      await this.persistTrace(invoice.id, 'extract', 'completed', extractDuration);
     } catch (error) {
-      stages.push({
-        stage: 'extract',
-        status: 'failed',
-        durationMs: 0,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
+      this.logger.error(`[extract] failed for invoice ${invoice.id}: ${msg}`);
+      const extractErr = error instanceof Error ? error.message : String(error);
+      stages.push({ stage: 'extract', status: 'failed', durationMs: 0, error: extractErr });
+      await this.persistTrace(invoice.id, 'extract', 'failed', 0, extractErr);
       return this.failInvoice(invoice, stages);
     }
 
@@ -285,18 +288,15 @@ export class ProcessInvoiceUseCase {
       invoice.markAsValidated();
       await this.invoiceRepo.save(invoice);
 
-      stages.push({
-        stage: 'validate',
-        status: 'completed',
-        durationMs: Date.now() - stageStart,
-      });
+      const validateDuration = Date.now() - stageStart;
+      stages.push({ stage: 'validate', status: 'completed', durationMs: validateDuration });
+      await this.persistTrace(invoice.id, 'validate', 'completed', validateDuration);
     } catch (error) {
-      stages.push({
-        stage: 'validate',
-        status: 'failed',
-        durationMs: 0,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
+      this.logger.error(`[validate] failed for invoice ${invoice.id}: ${msg}`);
+      const validateErr = error instanceof Error ? error.message : String(error);
+      stages.push({ stage: 'validate', status: 'failed', durationMs: 0, error: validateErr });
+      await this.persistTrace(invoice.id, 'validate', 'failed', 0, validateErr);
       return this.failInvoice(invoice, stages);
     }
 
@@ -333,22 +333,87 @@ export class ProcessInvoiceUseCase {
       invoice.setOverallConfidence(overallConfidence);
       await this.invoiceRepo.save(invoice);
 
-      stages.push({
-        stage: 'score',
-        status: 'completed',
-        durationMs: Date.now() - stageStart,
-      });
+      const scoreDuration = Date.now() - stageStart;
+      stages.push({ stage: 'score', status: 'completed', durationMs: scoreDuration });
+      await this.persistTrace(invoice.id, 'score', 'completed', scoreDuration);
     } catch (error) {
-      stages.push({
-        stage: 'score',
-        status: 'failed',
-        durationMs: 0,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
+      this.logger.error(`[score] failed for invoice ${invoice.id}: ${msg}`);
+      const scoreErr = error instanceof Error ? error.message : String(error);
+      stages.push({ stage: 'score', status: 'failed', durationMs: 0, error: scoreErr });
+      await this.persistTrace(invoice.id, 'score', 'failed', 0, scoreErr);
       return this.failInvoice(invoice, stages);
     }
 
-    // ============ STAGE 5: ROUTE ============
+    // Emit low-confidence notification if confidence < 60%
+    const LOW_CONFIDENCE_THRESHOLD = 0.60;
+    if (overallConfidence < LOW_CONFIDENCE_THRESHOLD) {
+      try {
+        await this.createNotification?.execute({
+          category: 'low_confidence',
+          title: 'Độ tin cậy thấp',
+          message: `Hóa đơn ${invoice.invoiceNumber ?? invoice.id} có độ tin cậy ${(overallConfidence * 100).toFixed(0)}%, cần kiểm tra thủ công.`,
+          relatedEntityType: 'invoice',
+          relatedEntityId: invoice.id,
+        });
+      } catch (err) {
+        this.logger.warn('Failed to create low-confidence notification', err);
+      }
+    }
+
+    // ============ STAGE 5: MAYBE CREATE SCHEMA ============
+    try {
+      const stageStart = Date.now();
+
+      if (!matchedSchemaId) {
+        // No schema matched — check auto-create flag
+        if (batch?.autoCreateSchemaOnNewPattern) {
+          // Auto-create a draft schema from extracted data
+          try {
+            const sellerName = invoice.sellerName ?? 'Unknown';
+            const sellerTaxId = invoice.sellerTaxId ?? `auto-${Date.now()}`;
+            const schemaResult = await this.createSchemaUseCase?.execute({
+              name: `Auto: ${sellerName} (${new Date().toISOString().slice(0, 10)})`,
+              nccName: sellerName,
+              nccTaxId: sellerTaxId,
+              description: `Tự động tạo từ hóa đơn ${invoice.id}`,
+            });
+            if (schemaResult) {
+              matchedSchemaId = schemaResult.schemaId;
+              this.logger.log(`[maybe-create-schema] Auto-created draft schema ${schemaResult.schemaId} for invoice ${invoice.id}`);
+            }
+          } catch (createErr) {
+            // Schema creation failed (e.g. duplicate taxId) — log warning, continue pipeline
+            this.logger.warn(`[maybe-create-schema] Failed to auto-create schema for invoice ${invoice.id}`, createErr);
+          }
+        } else {
+          // Emit schema_suggestion notification
+          try {
+            await this.createNotification?.execute({
+              category: 'schema_suggestion',
+              title: 'Phát hiện mẫu hóa đơn mới',
+              message: `Hóa đơn ${invoice.invoiceNumber ?? invoice.id} không khớp mẫu nào. Vui lòng tạo mẫu mới.`,
+              relatedEntityType: 'invoice',
+              relatedEntityId: invoice.id,
+            });
+          } catch {
+            this.logger.warn(`[maybe-create-schema] Failed to emit schema_suggestion notification`);
+          }
+        }
+        stages.push({ stage: 'maybe_create_schema', status: 'completed', durationMs: Date.now() - stageStart });
+        await this.persistTrace(invoice.id, 'maybe_create_schema', 'completed', Date.now() - stageStart);
+      } else {
+        // Schema already matched — skip
+        stages.push({ stage: 'maybe_create_schema', status: 'skipped', durationMs: 0 });
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[maybe-create-schema] failed for invoice ${invoice.id}: ${msg}`);
+      stages.push({ stage: 'maybe_create_schema', status: 'failed', durationMs: 0, error: msg });
+      // Don't fail the whole pipeline for this stage — continue to route
+    }
+
+    // ============ STAGE 6: ROUTE ============
     try {
       const stageStart = Date.now();
 
@@ -367,18 +432,15 @@ export class ProcessInvoiceUseCase {
         await this.batchRepo.save(batch);
       }
 
-      stages.push({
-        stage: 'route',
-        status: 'completed',
-        durationMs: Date.now() - stageStart,
-      });
+      const routeDuration = Date.now() - stageStart;
+      stages.push({ stage: 'route', status: 'completed', durationMs: routeDuration });
+      await this.persistTrace(invoice.id, 'route', 'completed', routeDuration);
     } catch (error) {
-      stages.push({
-        stage: 'route',
-        status: 'failed',
-        durationMs: 0,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
+      this.logger.error(`[route] failed for invoice ${invoice.id}: ${msg}`);
+      const routeErr = error instanceof Error ? error.message : String(error);
+      stages.push({ stage: 'route', status: 'failed', durationMs: 0, error: routeErr });
+      await this.persistTrace(invoice.id, 'route', 'failed', 0, routeErr);
       return this.failInvoice(invoice, stages);
     }
 
@@ -409,6 +471,19 @@ export class ProcessInvoiceUseCase {
       if (batch) {
         batch.recordFileResult(false);
         await this.batchRepo.save(batch);
+      }
+
+      // Emit processing error notification
+      try {
+        await this.createNotification?.execute({
+          category: 'processing_error',
+          title: 'Lỗi xử lý hóa đơn',
+          message: `Hóa đơn ${invoice.originalFilename} gặp lỗi trong quá trình xử lý.`,
+          relatedEntityType: 'invoice',
+          relatedEntityId: invoice.id,
+        });
+      } catch {
+        // Best-effort notification
       }
     } catch {
       // Best-effort error recording
@@ -447,7 +522,7 @@ export class ProcessInvoiceUseCase {
     };
 
     return {
-      schemaId: schemaId ?? 'unknown',
+      schemaId: schemaId,
       classificationMethod: method,
       classificationConfidence: confidence,
       invoiceNumber: getField('invoice_number'),
@@ -496,5 +571,36 @@ export class ProcessInvoiceUseCase {
       custom: 'custom_regex',
     };
     return mapping[ruleType] ?? 'custom_regex';
+  }
+
+  /**
+   * Persist a processing trace record (best-effort, won't break pipeline on failure).
+   * @param invoiceId - Invoice ID
+   * @param stage - Pipeline stage name
+   * @param status - Stage execution status
+   * @param durationMs - Stage duration in milliseconds
+   * @param errorMessage - Optional error message
+   */
+  private async persistTrace(
+    invoiceId: string,
+    stage: string,
+    status: string,
+    durationMs: number,
+    errorMessage?: string,
+  ): Promise<void> {
+    try {
+      if (this.traceRepo) {
+        const trace = ProcessingTrace.create({
+          invoiceId,
+          stage,
+          status,
+          durationMs,
+          errorMessage: errorMessage ?? null,
+        });
+        await this.traceRepo.save(trace);
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to persist trace for ${stage}`, err);
+    }
   }
 }

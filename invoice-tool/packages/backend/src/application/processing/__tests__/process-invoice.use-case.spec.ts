@@ -14,10 +14,12 @@ import { Batch } from '../../../domain/batch/batch.entity';
 const createMockInvoiceRepo = (): jest.Mocked<IInvoiceRepository> => ({
   findById: jest.fn(),
   findByBatchId: jest.fn().mockResolvedValue([]),
+  findRecent: jest.fn().mockResolvedValue([]),
   findByFileHash: jest.fn().mockResolvedValue(null),
   findDuplicate: jest.fn().mockResolvedValue(null),
   save: jest.fn().mockResolvedValue(undefined),
   updateStatus: jest.fn().mockResolvedValue(undefined),
+  findByFilters: jest.fn().mockResolvedValue([]),
 });
 
 const createMockBatchRepo = (): jest.Mocked<IBatchRepository> => ({
@@ -158,8 +160,8 @@ describe('ProcessInvoiceUseCase', () => {
 
       expect(result.invoiceId).toBe('inv-1');
       expect(result.finalStatus).not.toBe('error');
-      expect(result.stages).toHaveLength(5);
-      expect(result.stages.every(s => s.status === 'completed')).toBe(true);
+      expect(result.stages).toHaveLength(6);
+      expect(result.stages.filter(s => s.status !== 'skipped').every(s => s.status === 'completed')).toBe(true);
       expect(result.overallConfidence).toBeGreaterThanOrEqual(0);
       expect(result.overallConfidence).toBeLessThanOrEqual(1);
     });
@@ -264,6 +266,96 @@ describe('ProcessInvoiceUseCase', () => {
       // With good data, should route based on confidence
       expect(result.stages.find(s => s.stage === 'route')?.status).toBe('completed');
       expect(['mapped', 'needs_review']).toContain(result.finalStatus);
+    });
+  });
+
+  describe('maybe_create_schema stage', () => {
+    it('should skip stage when schema was already matched via hint', async () => {
+      const invoice = createTestInvoice();
+      // Batch with hintSchemaId pre-selects the schema → matchedSchemaId is set → stage skips
+      const batchWithHint = Batch.create({
+        id: 'batch-1',
+        uploadMode: 'single_ncc',
+        totalFiles: 1,
+        hintSchemaId: 'schema-1',
+      });
+      batchWithHint.startProcessing();
+      invoiceRepo.findById.mockResolvedValue(invoice);
+      batchRepo.findById.mockResolvedValue(batchWithHint);
+      schemaRepo.findById.mockResolvedValue(null); // schema lookup returns null → generic prompt
+      ocrService.extract.mockResolvedValue(createOcrResult());
+
+      const result = await sut.execute({ invoiceId: 'inv-1' });
+
+      const stage = result.stages.find(s => s.stage === 'maybe_create_schema');
+      expect(stage?.status).toBe('skipped');
+    });
+
+    it('should emit schema_suggestion when no schema matched and flag is OFF', async () => {
+      const invoice = createTestInvoice();
+      const batch = createTestBatch(); // autoCreateSchemaOnNewPattern defaults to false
+      invoiceRepo.findById.mockResolvedValue(invoice);
+      batchRepo.findById.mockResolvedValue(batch);
+      ruleRepo.findAllActive.mockResolvedValue([]);
+      schemaRepo.findActive.mockResolvedValue([]);
+      ocrService.extract.mockResolvedValue(createOcrResult());
+
+      const mockCreateNotification = { execute: jest.fn().mockResolvedValue(undefined) };
+      const sutWithNotification = new ProcessInvoiceUseCase(
+        invoiceRepo,
+        batchRepo,
+        schemaRepo,
+        ruleRepo,
+        fieldDefRepo,
+        ocrService,
+        fileStorage,
+        mockCreateNotification as never,
+      );
+
+      await sutWithNotification.execute({ invoiceId: 'inv-1' });
+
+      const schemaSuggestionCall = mockCreateNotification.execute.mock.calls.find(
+        (call: Array<Record<string, string>>) => call[0]?.category === 'schema_suggestion',
+      );
+      expect(schemaSuggestionCall).toBeDefined();
+    });
+
+    it('should call CreateSchemaUseCase when no schema matched and flag is ON', async () => {
+      const invoice = createTestInvoice();
+      const batchWithFlag = Batch.create({
+        id: 'batch-1',
+        uploadMode: 'single_ncc',
+        totalFiles: 1,
+        autoCreateSchemaOnNewPattern: true,
+      });
+      batchWithFlag.startProcessing();
+      invoiceRepo.findById.mockResolvedValue(invoice);
+      batchRepo.findById.mockResolvedValue(batchWithFlag);
+      ruleRepo.findAllActive.mockResolvedValue([]);
+      schemaRepo.findActive.mockResolvedValue([]);
+      ocrService.extract.mockResolvedValue(createOcrResult());
+
+      const mockCreateSchema = { execute: jest.fn().mockResolvedValue({ schemaId: 'new-schema-1' }) };
+      const sutWithSchema = new ProcessInvoiceUseCase(
+        invoiceRepo,
+        batchRepo,
+        schemaRepo,
+        ruleRepo,
+        fieldDefRepo,
+        ocrService,
+        fileStorage,
+        undefined,
+        undefined,
+        mockCreateSchema as never,
+      );
+
+      const result = await sutWithSchema.execute({ invoiceId: 'inv-1' });
+
+      expect(mockCreateSchema.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ nccTaxId: expect.any(String) }),
+      );
+      const stage = result.stages.find(s => s.stage === 'maybe_create_schema');
+      expect(stage?.status).toBe('completed');
     });
   });
 

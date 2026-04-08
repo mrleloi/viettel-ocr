@@ -58,6 +58,11 @@ export class EnvConfigService {
     return this.get('GEMINI_API_KEY');
   }
 
+  /** @returns Gemini model id (e.g., 'gemini-2.5-flash-lite') */
+  get geminiModel(): string {
+    return this.get('GEMINI_MODEL', 'gemini-2.5-flash-lite');
+  }
+
   /** @returns Server port */
   get port(): number {
     return parseInt(this.get('PORT', '3000'), 10);

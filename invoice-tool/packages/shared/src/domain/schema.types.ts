@@ -32,6 +32,7 @@ export interface FieldDefinitionProps {
   readonly isRequired: boolean;
   readonly validationRules: string | null;
   readonly extractionHint: string | null;
+  readonly outputKey: string | null;
   readonly sortOrder: number;
 }
 

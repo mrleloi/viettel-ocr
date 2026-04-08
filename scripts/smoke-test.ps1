@@ -31,7 +31,7 @@ $process = Start-Process -FilePath "cmd.exe" `
     -RedirectStandardOutput $logFile `
     -RedirectStandardError $errFile `
     -PassThru `
-    -NoNewWindow
+    -WindowStyle Hidden
 
 Write-Host "  Server PID: $($process.Id)" -ForegroundColor Gray
 

@@ -49,8 +49,10 @@ describe('CreateExportUseCase', () => {
     invoiceRepo = {
       findById: jest.fn(),
       findByBatchId: jest.fn(),
+      findRecent: jest.fn(),
       findByFileHash: jest.fn(),
       findDuplicate: jest.fn(),
+      findByFilters: jest.fn(),
       save: jest.fn(),
       updateStatus: jest.fn(),
     };
@@ -147,6 +149,42 @@ describe('CreateExportUseCase', () => {
       });
 
       expect(result.recordCount).toBe(1);
+    });
+
+    it('should call findByFilters when batchId not provided with statusFilter', async () => {
+      const inv1 = createApprovedInvoice({ invoiceNumber: 'INV-F1' });
+      invoiceRepo.findByFilters.mockResolvedValue([inv1]);
+
+      const result = await sut.execute({
+        format: 'csv',
+        statusFilter: 'approved',
+      });
+
+      expect(invoiceRepo.findByFilters).toHaveBeenCalledWith({
+        status: 'approved',
+        schemaId: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+      });
+      expect(result.recordCount).toBe(1);
+    });
+
+    it('should call findByFilters with empty filters when no batchId and no statusFilter', async () => {
+      const inv1 = createApprovedInvoice({ invoiceNumber: 'INV-F2' });
+      const inv2 = createApprovedInvoice({ invoiceNumber: 'INV-F3' });
+      invoiceRepo.findByFilters.mockResolvedValue([inv1, inv2]);
+
+      const result = await sut.execute({
+        format: 'json',
+      });
+
+      expect(invoiceRepo.findByFilters).toHaveBeenCalledWith({
+        status: undefined,
+        schemaId: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+      });
+      expect(result.recordCount).toBe(2);
     });
   });
 });

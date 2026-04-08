@@ -33,6 +33,11 @@ interface RawApiResponse {
 }
 
 /**
+ * Default mock server URL used when no real Viettel Product API URL is configured.
+ */
+const MOCK_SERVER_URL = 'http://localhost:3002';
+
+/**
  * Viettel Product API client implementing the IProductApiClient domain port.
  *
  * Fetches product data from the configured external API (or mock server)
@@ -42,7 +47,21 @@ interface RawApiResponse {
 export class ViettelProductClient implements IProductApiClient {
   constructor(
     private readonly config: EnvConfigService,
-  ) {}
+  ) {
+    const mode = this.config.useMockProductApi ? 'MOCK' : 'REAL';
+    console.log(`📦 ViettelProductClient: using ${mode} endpoint → ${this.baseUrl}`);
+  }
+
+  /**
+   * Resolved base URL for the product API.
+   * Falls back to the local mock server when no real URL is configured.
+   * @returns The base URL string
+   */
+  private get baseUrl(): string {
+    return this.config.useMockProductApi
+      ? MOCK_SERVER_URL
+      : this.config.viettelProductApiUrl;
+  }
 
   /**
    * Fetch products from external API with pagination.
@@ -63,7 +82,7 @@ export class ViettelProductClient implements IProductApiClient {
       params.set('search', search);
     }
 
-    const url = `${this.config.viettelProductApiUrl}/products?${params.toString()}`;
+    const url = `${this.baseUrl}/products?${params.toString()}`;
 
     let response: Response;
     try {
@@ -72,7 +91,7 @@ export class ViettelProductClient implements IProductApiClient {
       const message =
         error instanceof Error ? error.message : 'Unknown network error';
       throw new Error(
-        `Viettel Product API unreachable at ${this.config.viettelProductApiUrl}: ${message}`,
+        `Viettel Product API unreachable at ${this.baseUrl}: ${message}`,
       );
     }
 
@@ -116,7 +135,7 @@ export class ViettelProductClient implements IProductApiClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const url = `${this.config.viettelProductApiUrl}/health`;
+      const url = `${this.baseUrl}/health`;
       const response = await fetch(url);
       return response.ok;
     } catch {

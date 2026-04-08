@@ -13,6 +13,8 @@ import { ProductRepositoryImpl } from './repositories/product.repository.impl';
 import { SyncConflictRepositoryImpl } from './repositories/sync-conflict.repository.impl';
 import { MappingRepositoryImpl } from './repositories/mapping.repository.impl';
 import { InvoiceRepositoryImpl } from './repositories/invoice.repository.impl';
+import { NotificationRepositoryImpl } from './repositories/notification.repository.impl';
+import { ProcessingTraceRepositoryImpl } from './repositories/processing-trace.repository.impl';
 
 /**
  * Repository providers — map domain interface tokens to concrete implementations.
@@ -27,6 +29,8 @@ const repositoryProviders = [
   { provide: 'ISyncConflictRepository', useClass: SyncConflictRepositoryImpl },
   { provide: 'IMappingRepository', useClass: MappingRepositoryImpl },
   { provide: 'IInvoiceRepository', useClass: InvoiceRepositoryImpl },
+  { provide: 'INotificationRepository', useClass: NotificationRepositoryImpl },
+  { provide: 'IProcessingTraceRepository', useClass: ProcessingTraceRepositoryImpl },
 ];
 
 /**

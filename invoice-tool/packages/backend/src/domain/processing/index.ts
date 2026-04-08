@@ -1,4 +1,10 @@
 // Processing bounded context
+export { ProcessingTrace } from './processing-trace.entity';
+export type {
+  CreateTraceProps,
+  ProcessingTraceProps,
+} from './processing-trace.entity';
+export type { IProcessingTraceRepository } from './processing-trace.repository';
 export { ValidatorService } from './validator.service';
 export type {
   ExtractedInvoiceData,

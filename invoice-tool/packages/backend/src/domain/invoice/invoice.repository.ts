@@ -21,6 +21,14 @@ export interface IInvoiceRepository {
   findByBatchId(batchId: string): Promise<Invoice[]>;
 
   /**
+   * Find invoices by status, ordered by most recent first.
+   * @param status Status to filter by, or undefined to return all
+   * @param limit Maximum number of results
+   * @returns Array of matching invoices
+   */
+  findRecent(status: InvoiceStatus | undefined, limit: number): Promise<Invoice[]>;
+
+  /**
    * Find an invoice by its file hash (exact duplicate detection).
    * @param fileHash SHA-256 hash of the file
    * @returns The Invoice if found, null otherwise
@@ -48,4 +56,16 @@ export interface IInvoiceRepository {
    * @param status New status value
    */
   updateStatus(id: string, status: InvoiceStatus): Promise<void>;
+
+  /**
+   * Find invoices matching a set of optional filters.
+   * @param filters Optional status, schemaId, dateFrom, dateTo filters
+   * @returns Matching invoices (all if no filters)
+   */
+  findByFilters(filters: {
+    status?: string;
+    schemaId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<Invoice[]>;
 }

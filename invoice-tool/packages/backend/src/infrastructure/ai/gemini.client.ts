@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   IOcrService,
   OcrExtractionResult,
@@ -14,13 +14,14 @@ import { EnvConfigService } from '../config/env-config.service';
  */
 @Injectable()
 export class GeminiClient implements IOcrService {
-  private readonly apiUrl =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  private readonly logger = new Logger(GeminiClient.name);
+  private readonly apiUrl: string;
   private readonly baseDelay: number;
 
   constructor(
     private readonly config: EnvConfigService,
   ) {
+    this.apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.geminiModel}:generateContent`;
     this.baseDelay = 1000;
   }
 
@@ -40,6 +41,7 @@ export class GeminiClient implements IOcrService {
       value: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
     });
     Object.defineProperty(instance, 'baseDelay', { value: baseDelay });
+    Object.defineProperty(instance, 'logger', { value: new Logger(GeminiClient.name) });
     return instance;
   }
 
@@ -128,16 +130,29 @@ All monetary values as integers (VND). Dates as YYYY-MM-DD. If field not found, 
    */
   private async callWithRetry(body: object): Promise<OcrExtractionResult> {
     const maxRetries = this.config.apiRetryCount;
+    let lastStatus: number | null = null;
+    let lastBody: string | null = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const response = await fetch(
-        `${this.apiUrl}?key=${this.config.geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        },
-      );
+      let response: Response;
+      try {
+        response = await fetch(
+          `${this.apiUrl}?key=${this.config.geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          },
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`fetch threw on attempt ${attempt + 1}: ${msg}`);
+        if (attempt < maxRetries - 1) {
+          await this.delay(this.baseDelay * Math.pow(2, attempt));
+          continue;
+        }
+        throw new Error(`Gemini API: network error after ${maxRetries} attempts: ${msg}`);
+      }
 
       if (response.ok) {
         const json = (await response.json()) as {
@@ -147,6 +162,16 @@ All monetary values as integers (VND). Dates as YYYY-MM-DD. If field not found, 
         };
         return this.parseResponse(json);
       }
+
+      lastStatus = response.status;
+      try {
+        lastBody = typeof response.text === 'function' ? await response.text() : null;
+      } catch {
+        lastBody = '<unreadable response body>';
+      }
+      this.logger.error(
+        `Gemini API attempt ${attempt + 1} returned ${response.status} ${response.statusText}: ${lastBody?.substring(0, 500)}`,
+      );
 
       // Rate limited — exponential backoff with 3x multiplier
       if (response.status === 429) {
@@ -168,12 +193,14 @@ All monetary values as integers (VND). Dates as YYYY-MM-DD. If field not found, 
       // Client error (4xx other than 429) — fail immediately
       if (response.status >= 400 && response.status < 500) {
         throw new Error(
-          `Gemini API client error: ${response.status} ${response.statusText}`,
+          `Gemini API client error: ${response.status} ${response.statusText} — ${lastBody?.substring(0, 500)}`,
         );
       }
     }
 
-    throw new Error('Gemini API: max retries exceeded');
+    throw new Error(
+      `Gemini API: max retries exceeded (last status=${lastStatus ?? 'n/a'}, body=${lastBody?.substring(0, 500) ?? 'n/a'})`,
+    );
   }
 
   /**

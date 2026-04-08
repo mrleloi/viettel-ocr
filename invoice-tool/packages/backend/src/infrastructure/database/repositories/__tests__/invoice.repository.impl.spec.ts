@@ -220,4 +220,97 @@ describe('InvoiceRepositoryImpl', () => {
       expect(found!.status).toBe('processing');
     });
   });
+
+  describe('findByFilters', () => {
+    /**
+     * Helper: create an invoice with extracted data and a specific status.
+     */
+    async function createInvoiceWithStatus(
+      id: string,
+      status: 'approved' | 'needs_review' | 'rejected' | 'pending',
+      schemaId: string = 'schema-1',
+    ): Promise<void> {
+      const invoice = Invoice.create({
+        id,
+        batchId: 'batch-1',
+        originalFilename: `${id}.pdf`,
+        storagePath: `/${id}.pdf`,
+        fileHash: `hash-${id}`,
+        fileSizeBytes: 1024,
+        pageCount: 1,
+      });
+      if (status !== 'pending') {
+        invoice.markAsProcessing();
+        invoice.setExtractedData({
+          schemaId,
+          classificationMethod: 'fingerprint',
+          classificationConfidence: 0.9,
+          invoiceNumber: `INV-${id}`,
+          invoiceSymbol: 'AB/23E',
+          invoiceDate: '2026-01-15',
+          invoiceType: 'original',
+          sellerName: 'Seller',
+          sellerTaxId: '0123456789',
+          buyerName: 'Buyer',
+          buyerTaxId: '9876543210',
+          subtotal: 1000000,
+          vatRate: 0.1,
+          vatAmount: 100000,
+          total: 1100000,
+          poNumber: null,
+          lineItems: [],
+          ocrRawText: 'text',
+          extractedRawJson: '{}',
+          fieldConfidences: null,
+        });
+        invoice.markAsNeedsReview();
+        if (status === 'approved') {
+          invoice.approve('reviewer');
+        } else if (status === 'rejected') {
+          invoice.reject('reviewer');
+        }
+        // needs_review is already the status after markAsNeedsReview
+      }
+      await repo.save(invoice);
+    }
+
+    it('should return only approved invoices when status=approved', async () => {
+      await createInvoiceWithStatus('f-1', 'approved');
+      await createInvoiceWithStatus('f-2', 'needs_review');
+      await createInvoiceWithStatus('f-3', 'approved');
+
+      const results = await repo.findByFilters({ status: 'approved' });
+      expect(results).toHaveLength(2);
+      expect(results.every((inv) => inv.status === 'approved')).toBe(true);
+    });
+
+    it('should return all invoices when no filters are provided', async () => {
+      await createInvoiceWithStatus('f-4', 'approved');
+      await createInvoiceWithStatus('f-5', 'needs_review');
+      await createInvoiceWithStatus('f-6', 'pending');
+
+      const results = await repo.findByFilters({});
+      expect(results).toHaveLength(3);
+    });
+
+    it('should apply combined status + schemaId filters', async () => {
+      // Create a second schema for FK reference
+      const schemaRepo = new SchemaRepositoryImpl(db);
+      const schema2 = Schema.create({
+        id: 'schema-2',
+        name: 'Schema Two',
+        nccName: 'Supplier 2',
+        nccTaxId: '9999999999',
+      });
+      await schemaRepo.save(schema2);
+
+      await createInvoiceWithStatus('f-7', 'approved', 'schema-1');
+      await createInvoiceWithStatus('f-8', 'approved', 'schema-2');
+      await createInvoiceWithStatus('f-9', 'needs_review', 'schema-1');
+
+      const results = await repo.findByFilters({ status: 'approved', schemaId: 'schema-1' });
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe('f-7');
+    });
+  });
 });

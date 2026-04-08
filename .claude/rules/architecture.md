@@ -47,6 +47,42 @@ NEVER: interface/ → domain/ directly (must go through application/)
 - DTO classes with class-validator decorators
 - No business logic, no DB access
 
+## Notification Pattern (Phase 2 — CRITICAL)
+
+> Notifications MUST follow the event-bus emit pattern. This prevents coupling notification logic into existing use cases.
+
+```
+✅ CORRECT — emit event, let NotificationUseCase handle persistence:
+  this.eventBus.emit('notification.created', {
+    category: 'duplicate_detected',
+    relatedEntityType: 'invoice',
+    relatedEntityId: invoice.id,
+  });
+
+❌ WRONG — directly creating notifications inside existing use cases:
+  await this.notificationRepo.save(Notification.create({...}));
+```
+
+Notification-emitting use cases (Phase 2.A, session 17):
+- `UploadBatchUseCase` → `duplicate_detected` event
+- `ProcessInvoiceUseCase` → `low_confidence` event, `processing_error` event
+- `SyncProductsUseCase` → `sync_conflict` event
+
+## Schema Migration Notes (Phase 2)
+
+> `CREATE TABLE IF NOT EXISTS` does NOT add columns to existing tables.
+> When Phase 2 adds new columns, use the correct migration pattern:
+
+```sql
+-- Phase 2 example: adding outputKey to field_definitions (session 22)
+ALTER TABLE field_definitions ADD COLUMN output_key TEXT;
+```
+
+- Always guard with try/catch or `IF NOT EXISTS` logic in the migration code.
+- If column already exists (from a previous run), `ALTER TABLE ADD COLUMN` will throw — handle gracefully.
+- Alternative: document that dev DB needs `db-reset` (acceptable for MVP).
+- Update BOTH `initializeTables()` in `connection.ts` AND `createTestDb()` in test helper.
+
 ## NestJS Module Organization
 - One NestJS module per bounded context
 - Module registers: controllers, use cases, domain services, repository implementations
@@ -57,13 +93,17 @@ NEVER: interface/ → domain/ directly (must go through application/)
 - Components receive props only — no direct API calls inside components
 - API calls via generated OpenAPI client or React Query hooks
 - Server Components default — Client Components only for interactivity
-- Zustand for UI state, React Query for server state
+- Zustand for UI state (notification store), React Query for server state
+- PDF viewer: use `react-pdf` with `next/dynamic` import (avoid SSR errors)
 
 ## Data Flow
 
 ```
 Frontend (React Query) → HTTP → Controller → Use Case → Domain Service → Repository → SQLite
                                                       → Gemini Client → Gemini API
+
+Notification flow (Phase 2):
+Use Case → EventBus.emit() → NotificationUseCase.handle() → NotificationRepo → SSE → Bell UI
 ```
 
 ## File Naming

@@ -1,6 +1,6 @@
 # Invoice Processing Tool — Antigravity Instructions
 
-> Last updated: 2026-04-07 (Phase 1 MVP — Pre-Implementation)
+> Last updated: 2026-04-08 (Phase 2 — Depth over Breadth)
 
 ## Identity
 
@@ -16,7 +16,9 @@ You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP
 |---|---|---|
 | **1st** | **Business Spec** (`tasks/01-business-spec.md`) | Features, behavior, acceptance criteria |
 | **2nd** | **Design Docs** (`tasks/03-*` through `tasks/07-*`) | Architecture, DB schema, data flow |
-| **3rd** | **Action Guides** (from Architect) | Step-by-step implementation instructions |
+| **3rd** | **Phase 2 Master Plan** (`tasks/09-phase2-master-plan.md`) | Active implementation order (sessions 16–26) |
+| **4th** | **Action Guides** (from Architect) | Step-by-step implementation instructions |
+| Ref | **Phase 1 Master Plan** (`tasks/08-master-plan.md`) | Historical reference only (sessions 1–15, complete) |
 
 **Spec is the contract.** If action guide and spec disagree, follow spec.
 
@@ -81,6 +83,9 @@ You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP
 16. **No implementation without action guide** — check `tasks/action-guides/s{NN}-*.md` BEFORE any code. If no guide exists → STOP → create one first using `.agents/workflows/create-action-guide.md`
 17. **Always update `tasks/progress.md`** at session end — mark completed steps ✅, partial steps 🔄. This was missed in Session 3.
 18. **Translate bash commands to PowerShell** — all config docs use bash syntax. Agent must adapt: separate `&&` into individual commands, use `grep_search` tool instead of `grep -r | wc -l`
+19. **Backend smoke test is MANDATORY** after ANY change to `*.module.ts`, `@Inject()` constructors, or DB schema — run `scripts/smoke-test.ps1`. Phase 2 DI-touching sessions: **16, 17, 19, 20, 22, 24**.
+20. **Notification pattern**: Notifications MUST be created via event-bus emit → NotificationUseCase consumes → repo persists. NEVER create notifications as side effects inside existing use cases.
+21. **ALTER TABLE for Phase 2**: `CREATE TABLE IF NOT EXISTS` does NOT add columns to existing tables. When adding columns (e.g. `outputKey` on `field_definitions` in session 22), use `ALTER TABLE ADD COLUMN` + guard, or document that dev DB needs `db-reset`.
 
 ---
 
@@ -91,7 +96,8 @@ You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP
 ```
 1. Read `.context/session-handoff.md` → current state
 2. Read `.context/agent-notes.md` → learned rules + progress
-3. Read `tasks/08-master-plan.md` → find current phase step
+3. Read `tasks/09-phase2-master-plan.md` → find current phase step (sessions 16–26)
+   (For Phase 1 context: `tasks/08-master-plan.md` — sessions 1–15, historical)
 
 4. PRE-IMPLEMENTATION GATE (MANDATORY — DO NOT SKIP):
    Check: does tasks/action-guides/s{NN}-*.md exist for this session?
@@ -131,6 +137,18 @@ You are **Antigravity**, the Developer agent for the Invoice Processing Tool MVP
 
 ---
 
+## Phase 2 Risk Notes (from `09-phase2-master-plan.md §5`)
+
+> Read these BEFORE starting any Phase 2 session.
+
+- **Session 19**: `resumeForReprocess()` transition will break 3–5 existing tests in `invoice.entity.spec.ts` — expect and fix them.
+- **Session 21**: `react-pdf` with Next.js Turbopack may need `next/dynamic` import to avoid SSR errors.
+- **Session 22**: New `outputKey` column on `field_definitions` — existing `CREATE TABLE IF NOT EXISTS` won't add it. Use ALTER TABLE or db-reset.
+- **Sessions 20 & 22**: Both extend `InvoiceResponseDto` / add new DTOs — run sequentially, never parallel.
+- **No parallel session work.** Dependency graph: `16→17→18`, `16→19`, `16→20→21`, `20→22→23→24`, `24→25→26`.
+
+---
+
 ## Project Architecture (Layer Map)
 
 ```
@@ -164,9 +182,9 @@ packages/backend/src/
 packages/frontend/src/
   app/             → Next.js App Router pages
   components/      → React components (props-only, no API imports)
-  hooks/           → Custom hooks (useSSE, useBatchProgress)
+  hooks/           → Custom hooks (useSSE, useBatchProgress, useNotifications)
   lib/             → API client (generated from OpenAPI), utilities
-  stores/          → Zustand stores (UI state only)
+  stores/          → Zustand stores (UI state + notification state)
 
 packages/shared/src/
   domain/          → Shared types, value objects
@@ -187,6 +205,20 @@ NEVER: domain/ → infrastructure/
 NEVER: interface/ → domain/ (skip application layer)
 NEVER: components/ → lib/api/ (use hooks or server actions)
 ```
+
+---
+
+## Bounded Contexts (Phase 2 updated)
+
+| Context | Owns | Key Entities |
+|---------|------|--------------|
+| **INTAKE** | Upload, batch, preprocessing, dedup, duplicate policy | Batch, FileUpload |
+| **PROCESSING** | Pipeline, OCR/AI, classify, extract, validate, score, route, reprocess | Invoice, ProcessingTrace |
+| **SCHEMA** | Schema CRUD, fingerprint rules, field defs, prompts, behavior, sample preview | Schema, FingerprintRule, FieldDefinition |
+| **REVIEW** | Queue, approve/reject, edit, audit, PDF viewer, per-field confidence | ReviewAction, AuditLog |
+| **CATALOG** | Products, sync, conflicts, mappings, fuzzy match | ViettelProduct, ProductMapping, SyncConflict |
+| **OUTPUT** | Export (CSV/JSON/XLSX), filtered export, batch export | ExportJob |
+| **NOTIFICATION** | Notification lifecycle, emit-on-event, mark-read, SSE push, bell UI | Notification, NotificationCategory |
 
 ---
 
@@ -233,6 +265,20 @@ export class ProcessInvoiceUseCase {
 }
 ```
 
+### Notification Pattern (Phase 2 — NEW)
+```typescript
+// Emit in use case (CORRECT):
+this.eventBus.emit('notification.created', {
+  category: 'duplicate_detected',
+  relatedEntityType: 'invoice',
+  relatedEntityId: invoice.id,
+});
+
+// NEVER create notification directly inside a use case:
+// ❌ await this.notificationRepo.save(Notification.create(...));
+// The NotificationUseCase subscribes to events and persists.
+```
+
 ---
 
 ## Quality Self-Check (BEFORE saying "done")
@@ -241,10 +287,12 @@ export class ProcessInvoiceUseCase {
 □ tsc --noEmit passes (from packages/backend/ — or npm run typecheck from root)
 □ jest --bail passes (from packages/backend/ — or npm test from root)
    ⚠️ NEVER npx jest from monorepo root
+□ Backend test count ≥ 406 (Phase 2 baseline; target ≥ 480 by session 26)
 □ Domain layer: grep_search "@nestjs" in packages/backend/src/domain/ → 0 hits
 □ No console.log: grep_search "console.log" in packages/backend/src/ (exclude spec) → 0
 □ No any: grep_search ": any" in packages/backend/src/domain/ → 0
 □ Every new file has at least 1 test
+□ smoke-test.ps1 green (if DI-touching session: 16, 17, 19, 20, 22, 24)
 □ Session handoff updated
 □ Agent notes updated
 □ tasks/progress.md updated ← DO NOT SKIP
@@ -262,12 +310,14 @@ export class ProcessInvoiceUseCase {
 - Inventing sessions not in the master plan
 - "Tests pass" without fresh `jest --bail` output in THIS conversation
 - Putting business logic in a controller "temporarily"
+- Creating notifications as side effects in existing use cases (must use event bus)
 
 ✅ **REQUIRED patterns**:
 - Tests written FIRST, verified FAILING, then implement
 - Fresh verification evidence before every completion claim
 - PARTIAL status if any quality gate fails
 - "Progress" counters increment ONLY when tests are green
+- Smoke test after DI changes
 
 ---
 
@@ -278,7 +328,8 @@ export class ProcessInvoiceUseCase {
 | Business Spec | `tasks/01-business-spec.md` |
 | Database Design | `tasks/04-database-design.md` |
 | Low-Level Design | `tasks/06-low-level-design.md` |
-| Master Plan | `tasks/08-master-plan.md` |
+| **Master Plan (Phase 2 — ACTIVE)** | `tasks/09-phase2-master-plan.md` |
+| Master Plan (Phase 1 — historical) | `tasks/08-master-plan.md` |
 | Agent Notes | `.context/agent-notes.md` |
 | Session Handoff | `.context/session-handoff.md` |
 | Progress | `tasks/progress.md` |

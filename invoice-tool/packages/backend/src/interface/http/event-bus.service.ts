@@ -10,7 +10,8 @@ export type ServerEventType =
   | 'batch.completed'
   | 'invoice.needs_review'
   | 'export.completed'
-  | 'product.synced';
+  | 'product.synced'
+  | 'notification.created';
 
 /**
  * Payload for a server-sent event.

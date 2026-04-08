@@ -1,0 +1,123 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Điều hướng chính" [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: V
+        - generic [ref=e6]:
+          - generic [ref=e7]: Viettel OCR
+          - generic [ref=e8]: Xử lý hóa đơn tự động
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: Chính
+          - link "Tổng quan" [ref=e12] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e13]: 📊
+            - generic [ref=e14]: Tổng quan
+          - link "Tải lên" [ref=e15] [cursor=pointer]:
+            - /url: /upload
+            - generic [ref=e16]: 📤
+            - generic [ref=e17]: Tải lên
+          - link "Kiểm duyệt Mục cần xử lý" [ref=e18] [cursor=pointer]:
+            - /url: /review
+            - generic [ref=e19]: ✅
+            - generic [ref=e20]: Kiểm duyệt
+            - generic "Mục cần xử lý" [ref=e21]: "0"
+        - generic [ref=e22]:
+          - generic [ref=e23]: Quản lý
+          - link "Mẫu hóa đơn" [ref=e24] [cursor=pointer]:
+            - /url: /schemas
+            - generic [ref=e25]: 📋
+            - generic [ref=e26]: Mẫu hóa đơn
+          - link "Sản phẩm" [ref=e27] [cursor=pointer]:
+            - /url: /products
+            - generic [ref=e28]: 📦
+            - generic [ref=e29]: Sản phẩm
+          - link "Ánh xạ SP" [ref=e30] [cursor=pointer]:
+            - /url: /mappings
+            - generic [ref=e31]: 🔗
+            - generic [ref=e32]: Ánh xạ SP
+        - generic [ref=e33]:
+          - generic [ref=e34]: Báo cáo
+          - link "Xuất dữ liệu" [ref=e35] [cursor=pointer]:
+            - /url: /exports
+            - generic [ref=e36]: 📁
+            - generic [ref=e37]: Xuất dữ liệu
+          - link "Chẩn đoán" [ref=e38] [cursor=pointer]:
+            - /url: /diagnostics
+            - generic [ref=e39]: 🔧
+            - generic [ref=e40]: Chẩn đoán
+      - button "Thu gọn menu" [ref=e42] [cursor=pointer]:
+        - generic [ref=e43]: ◀
+        - generic [ref=e44]: Thu gọn
+    - generic [ref=e45]:
+      - banner [ref=e46]:
+        - generic [ref=e47]:
+          - button "Mở/đóng menu" [ref=e48] [cursor=pointer]: ☰
+          - heading "Kiểm duyệt hóa đơn" [level=1] [ref=e49]
+        - generic [ref=e50]:
+          - button "Thông báo" [ref=e51] [cursor=pointer]: 🔔
+          - generic "Tài khoản" [ref=e53] [cursor=pointer]: OP
+      - main [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]:
+              - heading "Kiểm duyệt hóa đơn" [level=1] [ref=e58]
+              - paragraph [ref=e59]: Hàng đợi kiểm duyệt
+            - button "🔄 Làm mới" [disabled] [ref=e60]
+          - generic [ref=e61]:
+            - button "Tất cả" [ref=e62] [cursor=pointer]:
+              - generic [ref=e63]: Tất cả
+            - button "Cần kiểm duyệt" [ref=e64] [cursor=pointer]:
+              - generic [ref=e65]: Cần kiểm duyệt
+            - button "Đã duyệt" [ref=e66] [cursor=pointer]:
+              - generic [ref=e67]: Đã duyệt
+            - button "Từ chối" [ref=e68] [cursor=pointer]:
+              - generic [ref=e69]: Từ chối
+          - table [ref=e72]:
+            - rowgroup [ref=e73]:
+              - row "Số hóa đơn Người bán Tổng tiền Độ tin cậy Ngày Trạng thái" [ref=e74]:
+                - columnheader "Số hóa đơn" [ref=e75]
+                - columnheader "Người bán" [ref=e76]
+                - columnheader "Tổng tiền" [ref=e77]
+                - columnheader "Độ tin cậy" [ref=e78]
+                - columnheader "Ngày" [ref=e79]
+                - columnheader "Trạng thái" [ref=e80]
+            - rowgroup [ref=e81]:
+              - row [ref=e82]:
+                - cell [ref=e83]
+                - cell [ref=e85]
+                - cell [ref=e87]
+                - cell [ref=e89]
+                - cell [ref=e91]
+                - cell [ref=e93]
+              - row [ref=e95]:
+                - cell [ref=e96]
+                - cell [ref=e98]
+                - cell [ref=e100]
+                - cell [ref=e102]
+                - cell [ref=e104]
+                - cell [ref=e106]
+              - row [ref=e108]:
+                - cell [ref=e109]
+                - cell [ref=e111]
+                - cell [ref=e113]
+                - cell [ref=e115]
+                - cell [ref=e117]
+                - cell [ref=e119]
+              - row [ref=e121]:
+                - cell [ref=e122]
+                - cell [ref=e124]
+                - cell [ref=e126]
+                - cell [ref=e128]
+                - cell [ref=e130]
+                - cell [ref=e132]
+              - row [ref=e134]:
+                - cell [ref=e135]
+                - cell [ref=e137]
+                - cell [ref=e139]
+                - cell [ref=e141]
+                - cell [ref=e143]
+                - cell [ref=e145]
+  - button "Open Next.js Dev Tools" [ref=e152] [cursor=pointer]:
+    - img [ref=e153]
+  - alert [ref=e156]

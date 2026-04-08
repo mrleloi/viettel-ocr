@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { LineItemResponseDto } from './line-item-response.dto';
 
 /**
- * Response DTO for invoice data.
+ * Full response DTO for an invoice, including all extraction and processing data.
  */
 export class InvoiceResponseDto {
   @ApiProperty({ description: 'Invoice ID' })
@@ -60,29 +61,79 @@ export class InvoiceResponseDto {
 
   @ApiProperty({ description: 'Creation timestamp (ISO 8601)' })
   createdAt!: string;
+
+  // --- New fields for review depth (Session 20) ---
+
+  @ApiPropertyOptional({ description: 'Line items extracted from the invoice', type: [LineItemResponseDto] })
+  lineItems?: LineItemResponseDto[] | null;
+
+  @ApiPropertyOptional({ description: 'Raw OCR text from AI model' })
+  ocrRawText?: string | null;
+
+  @ApiPropertyOptional({ description: 'Raw extracted JSON from AI model' })
+  extractedRawJson?: string | null;
+
+  @ApiPropertyOptional({ description: 'Per-field confidence scores (parsed JSON object)' })
+  fieldConfidences?: Record<string, number> | null;
+
+  @ApiPropertyOptional({ description: 'Validation errors and warnings' })
+  validationErrors?: { errors: string[]; warnings: string[] } | null;
+
+  @ApiPropertyOptional({ description: 'Classification method (fingerprint, llm, manual, frontend_hint)' })
+  classificationMethod?: string | null;
+
+  @ApiPropertyOptional({ description: 'Classification confidence score (0-1)' })
+  classificationConfidence?: number | null;
+
+  @ApiPropertyOptional({ description: 'File storage path (relative)' })
+  storagePath?: string | null;
+
+  @ApiPropertyOptional({ description: 'PDF page count' })
+  pageCount?: number | null;
+
+  @ApiPropertyOptional({ description: 'SHA-256 file hash' })
+  fileHash?: string | null;
+
+  @ApiPropertyOptional({ description: 'PO number' })
+  poNumber?: string | null;
+
+  @ApiPropertyOptional({ description: 'ID of original invoice if this is a duplicate' })
+  duplicateOf?: string | null;
+
+  @ApiPropertyOptional({ description: 'Processing completed timestamp (ISO 8601)' })
+  processedAt?: string | null;
+
+  @ApiPropertyOptional({ description: 'Review completed timestamp (ISO 8601)' })
+  reviewedAt?: string | null;
+
+  @ApiPropertyOptional({ description: 'Reviewer identifier' })
+  reviewedBy?: string | null;
+
+  @ApiPropertyOptional({ description: 'Last updated timestamp (ISO 8601)' })
+  updatedAt?: string | null;
 }
 
 /**
- * Response DTO for approve/reject result.
+ * Response DTO for invoice review actions (approve, reject, reprocess).
  */
 export class InvoiceActionResponseDto {
   @ApiProperty({ description: 'Invoice ID' })
   invoiceId!: string;
 
-  @ApiProperty({ description: 'Previous status' })
+  @ApiProperty({ description: 'Previous status before the action' })
   previousStatus!: string;
 
-  @ApiProperty({ description: 'New status' })
+  @ApiProperty({ description: 'New status after the action' })
   newStatus!: string;
 }
 
 /**
- * Response DTO for edit result.
+ * Response DTO for invoice edit operations.
  */
 export class InvoiceEditResponseDto {
   @ApiProperty({ description: 'Invoice ID' })
   invoiceId!: string;
 
-  @ApiProperty({ description: 'List of updated field names', type: [String] })
+  @ApiProperty({ description: 'List of fields that were updated' })
   updatedFields!: string[];
 }

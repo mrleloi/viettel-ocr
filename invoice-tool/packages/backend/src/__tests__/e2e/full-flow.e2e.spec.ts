@@ -10,6 +10,7 @@ import { ApproveInvoiceUseCase } from '../../application/review/approve-invoice.
 import { RejectInvoiceUseCase } from '../../application/review/reject-invoice.use-case';
 import { EditInvoiceUseCase } from '../../application/review/edit-invoice.use-case';
 import { CreateExportUseCase } from '../../application/export/create-export.use-case';
+import { ReprocessInvoiceUseCase } from '../../application/processing/reprocess-invoice.use-case';
 
 /**
  * E2E Test — Full API Flow
@@ -52,10 +53,17 @@ describe('E2E: Full Invoice Flow', () => {
 
   const mockFileStorage = {
     readFile: jest.fn(),
+    readFileAsBase64: jest.fn(),
     writeFile: jest.fn(),
+    saveFile: jest.fn(),
     fileExists: jest.fn(),
     deleteFile: jest.fn(),
     getAbsolutePath: jest.fn(),
+  };
+
+  const mockTraceRepo = {
+    save: jest.fn(),
+    findByInvoiceId: jest.fn().mockResolvedValue([]),
   };
 
   // Mock use cases
@@ -93,7 +101,23 @@ describe('E2E: Full Invoice Flow', () => {
         overallConfidence: 0.85,
         schemaId: 'schema-1',
         originalFilename: 'test.pdf',
+        storagePath: 'uploads/test.pdf',
+        fileHash: 'fakehash123',
+        pageCount: 1,
+        lineItems: [],
+        ocrRawText: null,
+        extractedRawJson: null,
+        fieldConfidences: null,
+        validationErrors: null,
+        classificationMethod: null,
+        classificationConfidence: null,
+        duplicateOf: null,
+        poNumber: null,
+        processedAt: null,
+        reviewedAt: null,
+        reviewedBy: null,
         createdAt: new Date('2026-04-07'),
+        updatedAt: new Date('2026-04-07'),
       };
       return {
         batchId,
@@ -137,6 +161,10 @@ describe('E2E: Full Invoice Flow', () => {
     }),
   };
 
+  const mockReprocessInvoice = {
+    execute: jest.fn(),
+  };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [
@@ -150,10 +178,12 @@ describe('E2E: Full Invoice Flow', () => {
         { provide: ApproveInvoiceUseCase, useValue: mockApproveInvoice },
         { provide: RejectInvoiceUseCase, useValue: mockRejectInvoice },
         { provide: EditInvoiceUseCase, useValue: mockEditInvoice },
+        { provide: ReprocessInvoiceUseCase, useValue: mockReprocessInvoice },
         { provide: CreateExportUseCase, useValue: mockCreateExport },
         { provide: 'IBatchRepository', useValue: mockBatchRepo },
         { provide: 'IInvoiceRepository', useValue: mockInvoiceRepo },
         { provide: 'IFileStorage', useValue: mockFileStorage },
+        { provide: 'IProcessingTraceRepository', useValue: mockTraceRepo },
       ],
     }).compile();
 

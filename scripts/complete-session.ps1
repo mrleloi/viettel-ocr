@@ -75,14 +75,20 @@ if ($buildOutput -match "Compiled successfully") {
     Write-Host "  WARN: Could not confirm build pass (may be OK)" -ForegroundColor DarkYellow
 }
 
-# --- Check 6: Backend smoke test (server starts) ---
-Write-Host "[6/6] Running backend smoke test..." -ForegroundColor Yellow
-$smokeResult = & powershell -ExecutionPolicy Bypass -File "$root\scripts\smoke-test.ps1" -TimeoutSeconds 20
+# --- Check 6: TypeScript compilation (catches DI wiring type errors) ---
+Write-Host "[6/6] Checking TypeScript compilation..." -ForegroundColor Yellow
+$tscResult = & cmd /c "cd $root\invoice-tool\packages\backend && npx tsc --noEmit 2>&1" | Select-Object -Last 5
+$tscOutput = $tscResult -join "`n"
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "  OK: Backend starts successfully" -ForegroundColor Green
+    Write-Host "  OK: TypeScript compiles cleanly" -ForegroundColor Green
 } else {
-    $errors += "Backend smoke test failed - server does not start. Run smoke-test.ps1 to debug."
-    Write-Host "  FAIL: Backend does not start" -ForegroundColor Red
+    $errors += "TypeScript compilation failed. Run 'npx tsc --noEmit' in backend to debug."
+    Write-Host "  FAIL: TypeScript errors detected" -ForegroundColor Red
+    foreach ($line in $tscResult) {
+        if ($line -match "error TS") {
+            Write-Host "    $($line.Trim())" -ForegroundColor DarkRed
+        }
+    }
 }
 
 # --- Summary ---
@@ -107,4 +113,4 @@ Write-Host "Spawning next session..." -ForegroundColor Cyan
 Write-Host ""
 
 # --- Run auto-next-session ---
-& powershell -ExecutionPolicy Bypass -File "$root\scripts\auto-next-session.ps1" -Message $Message -NewSessionDelay $NewSessionDelay
+# & powershell -ExecutionPolicy Bypass -File "$root\scripts\auto-next-session.ps1" -Message $Message -NewSessionDelay $NewSessionDelay

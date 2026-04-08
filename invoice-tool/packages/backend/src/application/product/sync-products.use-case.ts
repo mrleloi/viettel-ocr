@@ -3,7 +3,8 @@ import type { ISyncConflictRepository } from '../../domain/product/sync-conflict
 import type { IProductApiClient, ProductApiItem } from '../../domain/product/product-api.client';
 import { Product } from '../../domain/product/product.entity';
 import { SyncConflict } from '../../domain/product/sync-conflict.entity';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+import { CreateNotificationUseCase } from '../notification/create-notification.use-case';
 
 /** Output after product sync */
 export interface SyncProductsOutput {
@@ -29,10 +30,13 @@ export interface SyncProductsOutput {
  */
 @Injectable()
 export class SyncProductsUseCase {
+  private readonly logger = new Logger(SyncProductsUseCase.name);
+
   constructor(
     @Inject('IProductRepository') private readonly productRepo: IProductRepository,
     @Inject('ISyncConflictRepository') private readonly conflictRepo: ISyncConflictRepository,
     @Inject('IProductApiClient') private readonly apiClient: IProductApiClient,
+    @Optional() private readonly createNotification?: CreateNotificationUseCase,
   ) {}
 
   /**
@@ -86,6 +90,19 @@ export class SyncProductsUseCase {
           existingProduct.markConflict();
           await this.productRepo.save(existingProduct);
           conflictsDetected += conflicts.length;
+
+          // Emit notification for sync conflict
+          try {
+            await this.createNotification?.execute({
+              category: 'sync_conflict',
+              title: 'Xung đột đồng bộ sản phẩm',
+              message: `Sản phẩm "${existingProduct.productName}" (${existingProduct.productCode}) có ${conflicts.length} xung đột với dữ liệu từ API.`,
+              relatedEntityType: 'product',
+              relatedEntityId: existingProduct.id,
+            });
+          } catch (err) {
+            this.logger.warn('Failed to create sync-conflict notification', err);
+          }
         } else {
           // No local edits — safe to update
           existingProduct.updateFromSync({

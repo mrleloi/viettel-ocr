@@ -39,6 +39,7 @@ export const fieldDefinitions = sqliteTable('field_definitions', {
   isRequired: integer('is_required', { mode: 'boolean' }).notNull().default(false),
   validationRules: text('validation_rules'),
   extractionHint: text('extraction_hint'),
+  outputKey: text('output_key'),
   sortOrder: integer('sort_order').notNull().default(0),
 });
 
@@ -55,6 +56,7 @@ export const batches = sqliteTable('batches', {
   status: text('status').notNull().default('uploading'),
   createdAt: text('created_at').notNull(),
   completedAt: text('completed_at'),
+  autoCreateSchema: integer('auto_create_schema', { mode: 'boolean' }).notNull().default(false),
 });
 
 // --- PROCESSING CONTEXT ---

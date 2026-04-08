@@ -33,4 +33,10 @@ export class CreateExportDto {
   @IsOptional()
   @IsString()
   dateTo?: string;
+
+  /** Optional status filter (e.g., 'approved') */
+  @ApiPropertyOptional({ description: 'Filter by invoice status (e.g., approved)' })
+  @IsOptional()
+  @IsString()
+  statusFilter?: string;
 }

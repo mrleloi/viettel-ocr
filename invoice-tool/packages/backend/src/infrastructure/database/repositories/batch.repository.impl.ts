@@ -78,6 +78,7 @@ export class BatchRepositoryImpl implements IBatchRepository {
       status: row.status as BatchStatus,
       createdAt: new Date(row.createdAt),
       completedAt: row.completedAt ? new Date(row.completedAt) : null,
+      autoCreateSchemaOnNewPattern: row.autoCreateSchema ?? false,
     };
   }
 
@@ -98,6 +99,7 @@ export class BatchRepositoryImpl implements IBatchRepository {
       status: entity.status,
       createdAt: entity.createdAt.toISOString(),
       completedAt: entity.completedAt?.toISOString() ?? null,
+      autoCreateSchema: entity.autoCreateSchemaOnNewPattern,
     };
   }
 }

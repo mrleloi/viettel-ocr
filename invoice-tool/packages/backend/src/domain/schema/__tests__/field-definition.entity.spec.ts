@@ -66,6 +66,7 @@ describe('FieldDefinition', () => {
         isRequired: true,
         validationRules: '{"min": 0}',
         extractionHint: 'Tổng cộng tiền thanh toán',
+        outputKey: 'total',
         sortOrder: 10,
       });
       expect(field.id).toBe('field-1');

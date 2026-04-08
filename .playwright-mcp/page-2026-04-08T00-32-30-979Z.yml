@@ -1,0 +1,88 @@
+- generic [ref=e1]:
+  - generic [active]:
+    - generic [ref=e97]:
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - navigation [ref=e100]:
+            - button "previous" [disabled] [ref=e101]:
+              - img "previous" [ref=e102]
+            - generic [ref=e104]:
+              - generic [ref=e105]: 1/
+              - text: "1"
+            - button "next" [disabled] [ref=e106]:
+              - img "next" [ref=e107]
+          - img
+        - generic [ref=e109]:
+          - generic [ref=e110]:
+            - img [ref=e111]
+            - generic "Latest available version is detected (16.2.2)." [ref=e113]: Next.js 16.2.2
+            - generic [ref=e114]: Turbopack
+          - img
+      - dialog "Runtime TypeError" [ref=e116]:
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e123]: Runtime TypeError
+              - generic [ref=e124]:
+                - button "Copy Error Info" [ref=e125] [cursor=pointer]:
+                  - img [ref=e126]
+                - button "No related documentation found" [disabled] [ref=e128]:
+                  - img [ref=e129]
+                - button "Attach Node.js inspector" [ref=e131] [cursor=pointer]:
+                  - img [ref=e132]
+            - generic [ref=e141]: Cannot read properties of undefined (reading 'totalFiles')
+          - generic [ref=e142]:
+            - generic [ref=e143]:
+              - paragraph [ref=e145]:
+                - img [ref=e147]
+                - generic [ref=e150]: src/components/upload/UploadResult.tsx (30:70) @ UploadResult
+                - button "Open in editor" [ref=e151] [cursor=pointer]:
+                  - img [ref=e153]
+              - generic [ref=e156]:
+                - generic [ref=e157]: 28 | <div className="upload-result-details">
+                - generic [ref=e158]: 29 | <div className="upload-result-stat">
+                - generic [ref=e159]: "> 30 | <span className=\"upload-result-stat-value\">{result.batch.totalFiles}</span>"
+                - generic [ref=e160]: "| ^"
+                - generic [ref=e161]: 31 | <span className="upload-result-stat-label">Tổng file</span>
+                - generic [ref=e162]: 32 | </div>
+                - generic [ref=e163]: 33 | <div className="upload-result-stat">
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - paragraph [ref=e166]:
+                  - text: Call Stack
+                  - generic [ref=e167]: "14"
+                - button "Show 12 ignore-listed frame(s)" [ref=e168] [cursor=pointer]:
+                  - text: Show 12 ignore-listed frame(s)
+                  - img [ref=e169]
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - text: UploadResult
+                  - button "Open UploadResult in editor" [ref=e173] [cursor=pointer]:
+                    - img [ref=e174]
+                - text: src/components/upload/UploadResult.tsx (30:70)
+              - generic [ref=e176]:
+                - generic [ref=e177]:
+                  - text: UploadPage
+                  - button "Open UploadPage in editor" [ref=e178] [cursor=pointer]:
+                    - img [ref=e179]
+                - text: src/app/upload/page.tsx (109:12)
+        - generic [ref=e181]: "1"
+        - generic [ref=e182]: "2"
+    - generic [ref=e70] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e71]:
+        - img [ref=e72]
+      - generic [ref=e183]:
+        - button "Open issues overlay" [ref=e184]:
+          - generic [ref=e185]:
+            - generic [ref=e186]: "0"
+            - generic [ref=e187]: "1"
+          - generic [ref=e188]: Issue
+        - button "Collapse issues badge" [ref=e189]:
+          - img [ref=e190]
+  - generic [ref=e193]:
+    - img [ref=e194]
+    - heading "This page couldn’t load" [level=1] [ref=e196]
+    - paragraph [ref=e197]: Reload to try again, or go back.
+    - generic [ref=e198]:
+      - button "Reload" [ref=e200] [cursor=pointer]
+      - button "Back" [ref=e201] [cursor=pointer]

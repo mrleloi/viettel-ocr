@@ -3,7 +3,7 @@ import type { IBatchRepository } from '../../../domain/batch/batch.repository';
 import type { IInvoiceRepository } from '../../../domain/invoice/invoice.repository';
 import type { IFileStorage } from '../../../domain/shared/file-storage';
 import type { IJobQueue } from '../../../domain/shared/job-queue';
-import type { Invoice } from '../../../domain/invoice/invoice.entity';
+import { Invoice } from '../../../domain/invoice/invoice.entity';
 
 const createMockBatchRepo = (): jest.Mocked<IBatchRepository> => ({
   findById: jest.fn().mockResolvedValue(null),
@@ -15,10 +15,12 @@ const createMockBatchRepo = (): jest.Mocked<IBatchRepository> => ({
 const createMockInvoiceRepo = (): jest.Mocked<IInvoiceRepository> => ({
   findById: jest.fn().mockResolvedValue(null),
   findByBatchId: jest.fn().mockResolvedValue([]),
+  findRecent: jest.fn().mockResolvedValue([]),
   findByFileHash: jest.fn().mockResolvedValue(null),
   findDuplicate: jest.fn().mockResolvedValue(null),
   save: jest.fn().mockResolvedValue(undefined),
   updateStatus: jest.fn().mockResolvedValue(undefined),
+  findByFilters: jest.fn().mockResolvedValue([]),
 });
 
 const createMockFileStorage = (): jest.Mocked<IFileStorage> => ({
@@ -240,6 +242,103 @@ describe('UploadBatchUseCase', () => {
 
       // Should save batch only once (initial save, no startProcessing)
       expect(batchRepo.save).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('duplicate policy — onDuplicate flag', () => {
+    it('should default to skip when onDuplicate is not provided', async () => {
+      const existingInvoice = Invoice.reconstitute({
+        id: 'existing-inv-1', batchId: 'old-batch', originalFilename: 'orig.pdf',
+        storagePath: '/p/orig.pdf', fileHash: '', fileSizeBytes: 1024, pageCount: 1,
+        status: 'approved', schemaId: null, classificationMethod: null,
+        classificationConfidence: null, invoiceNumber: null, invoiceSymbol: null,
+        invoiceDate: null, invoiceType: null, sellerName: null, sellerTaxId: null,
+        buyerName: null, buyerTaxId: null, subtotal: null, vatRate: null,
+        vatAmount: null, total: null, poNumber: null, lineItems: [],
+        overallConfidence: null, ocrRawText: null, extractedRawJson: null,
+        validationErrors: null, fieldConfidences: null, duplicateOf: null,
+        createdAt: new Date(), updatedAt: new Date(), processedAt: null,
+        reviewedAt: null, reviewedBy: null,
+      });
+      invoiceRepo.findByFileHash.mockResolvedValueOnce(existingInvoice);
+
+      const input: UploadBatchInput = {
+        files: [makePdf('dup.pdf')],
+        uploadMode: 'single_ncc',
+        // onDuplicate not specified → defaults to skip
+      };
+
+      const result = await sut.execute(input);
+
+      expect(result.duplicateFiles).toBe(1);
+      expect(result.acceptedFiles).toBe(0);
+      expect(result.results[0].status).toBe('duplicate');
+      expect(jobQueue.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('should enqueue existing invoice when onDuplicate is process_anyway', async () => {
+      const existingInvoice = Invoice.reconstitute({
+        id: 'existing-inv-1', batchId: 'old-batch', originalFilename: 'orig.pdf',
+        storagePath: '/p/orig.pdf', fileHash: '', fileSizeBytes: 1024, pageCount: 1,
+        status: 'approved', schemaId: 'schema-1', classificationMethod: 'fingerprint',
+        classificationConfidence: 0.9, invoiceNumber: '001', invoiceSymbol: null,
+        invoiceDate: '2026-04-07', invoiceType: 'original', sellerName: 'Seller',
+        sellerTaxId: '123', buyerName: 'Buyer', buyerTaxId: '456',
+        subtotal: 1000, vatRate: 10, vatAmount: 100, total: 1100, poNumber: null,
+        lineItems: [], overallConfidence: 0.85, ocrRawText: 'text',
+        extractedRawJson: '{}', validationErrors: null, fieldConfidences: null,
+        duplicateOf: null, createdAt: new Date(), updatedAt: new Date(),
+        processedAt: new Date(), reviewedAt: null, reviewedBy: null,
+      });
+      invoiceRepo.findByFileHash.mockResolvedValueOnce(existingInvoice);
+
+      const input: UploadBatchInput = {
+        files: [makePdf('dup.pdf')],
+        uploadMode: 'single_ncc',
+        onDuplicate: 'process_anyway',
+      };
+
+      const result = await sut.execute(input);
+
+      // Existing invoice should be reprocessed, not a new one created
+      expect(result.acceptedFiles).toBe(1);
+      expect(result.duplicateFiles).toBe(0);
+      expect(result.results[0].status).toBe('accepted');
+      expect(result.results[0].invoiceId).toBe('existing-inv-1');
+      expect(result.results[0].duplicateOfId).toBe('existing-inv-1');
+      // The existing invoice should be saved (after resumeForReprocess) and enqueued
+      expect(invoiceRepo.save).toHaveBeenCalled();
+      expect(jobQueue.enqueue).toHaveBeenCalledWith('existing-inv-1');
+    });
+
+    it('should mark as duplicate without enqueue when onDuplicate is flag_only', async () => {
+      const existingInvoice = Invoice.reconstitute({
+        id: 'existing-inv-1', batchId: 'old-batch', originalFilename: 'orig.pdf',
+        storagePath: '/p/orig.pdf', fileHash: '', fileSizeBytes: 1024, pageCount: 1,
+        status: 'approved', schemaId: null, classificationMethod: null,
+        classificationConfidence: null, invoiceNumber: null, invoiceSymbol: null,
+        invoiceDate: null, invoiceType: null, sellerName: null, sellerTaxId: null,
+        buyerName: null, buyerTaxId: null, subtotal: null, vatRate: null,
+        vatAmount: null, total: null, poNumber: null, lineItems: [],
+        overallConfidence: null, ocrRawText: null, extractedRawJson: null,
+        validationErrors: null, fieldConfidences: null, duplicateOf: null,
+        createdAt: new Date(), updatedAt: new Date(), processedAt: null,
+        reviewedAt: null, reviewedBy: null,
+      });
+      invoiceRepo.findByFileHash.mockResolvedValueOnce(existingInvoice);
+
+      const input: UploadBatchInput = {
+        files: [makePdf('dup.pdf')],
+        uploadMode: 'single_ncc',
+        onDuplicate: 'flag_only',
+      };
+
+      const result = await sut.execute(input);
+
+      expect(result.duplicateFiles).toBe(1);
+      expect(result.acceptedFiles).toBe(0);
+      expect(result.results[0].status).toBe('duplicate');
+      expect(jobQueue.enqueue).not.toHaveBeenCalled();
     });
   });
 });

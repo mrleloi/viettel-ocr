@@ -69,6 +69,7 @@ function initializeTables(sqlite: Database.Database): void {
       is_required INTEGER NOT NULL DEFAULT 0,
       validation_rules TEXT,
       extraction_hint TEXT,
+      output_key TEXT,
       sort_order INTEGER NOT NULL DEFAULT 0
     );
 
@@ -83,7 +84,8 @@ function initializeTables(sqlite: Database.Database): void {
       error_files INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'uploading',
       created_at TEXT NOT NULL,
-      completed_at TEXT
+      completed_at TEXT,
+      auto_create_schema INTEGER NOT NULL DEFAULT 0
     );
 
     -- PROCESSING
@@ -238,6 +240,13 @@ function initializeTables(sqlite: Database.Database): void {
       updated_at TEXT NOT NULL
     );
   `);
+
+  // Migrations for existing databases (ALTER TABLE is not idempotent, so wrap in try/catch)
+  try {
+    sqlite.exec(`ALTER TABLE batches ADD COLUMN auto_create_schema INTEGER NOT NULL DEFAULT 0`);
+  } catch {
+    // Column already exists — ignore
+  }
 }
 
 /**

@@ -37,10 +37,12 @@ describe('RejectInvoiceUseCase', () => {
     invoiceRepo = {
       findById: jest.fn(),
       findByBatchId: jest.fn(),
+      findRecent: jest.fn(),
       findByFileHash: jest.fn(),
       findDuplicate: jest.fn(),
       save: jest.fn(),
       updateStatus: jest.fn(),
+      findByFilters: jest.fn(),
     };
     batchRepo = {
       findById: jest.fn(),

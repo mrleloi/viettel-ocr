@@ -49,6 +49,7 @@ export class ExportController {
       schemaId: dto.schemaId,
       dateFrom: dto.dateFrom,
       dateTo: dto.dateTo,
+      statusFilter: dto.statusFilter,
     });
     return {
       exportId: result.exportId,

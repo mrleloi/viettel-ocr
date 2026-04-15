@@ -21,7 +21,7 @@ export const REQUIRED_CONFIG_KEYS: ReadonlyArray<string> = [
 
 /** Default config values */
 export const CONFIG_DEFAULTS: Record<string, string> = {
-  [CONFIG_KEYS.PORT]: '3000',
+  [CONFIG_KEYS.PORT]: '8889',
   [CONFIG_KEYS.DATA_DIR]: './data',
   [CONFIG_KEYS.VIETTEL_PRODUCT_API_URL]: '',
   [CONFIG_KEYS.MAX_CONCURRENT_API_CALLS]: '5',

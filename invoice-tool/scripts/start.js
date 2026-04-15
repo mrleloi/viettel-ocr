@@ -50,22 +50,22 @@ async function start() {
   const hasExternalApi = configContent.includes('VIETTEL_PRODUCT_API_URL=http');
 
   if (!hasExternalApi) {
-    console.log('🏪 Starting mock Viettel Product API on :3002...');
+    console.log('🏪 Starting mock Viettel Product API on :8887...');
     processes.push(
       startProcess('mock', 'npx', ['ts-node', 'packages/mock-server/src/main.ts'], {
-        PORT: '3002',
+        PORT: '8887',
       }),
     );
   }
 
   // Start backend
-  console.log('⚙️  Starting NestJS backend on :3000...');
+  console.log('⚙️  Starting NestJS backend on :8889...');
   processes.push(
     startProcess('backend', 'npm', ['run', 'start:dev', '-w', 'packages/backend']),
   );
 
   // Start frontend
-  console.log('🎨 Starting Next.js frontend on :3001...');
+  console.log('🎨 Starting Next.js frontend on :8888...');
   processes.push(
     startProcess('frontend', 'npm', ['run', 'dev', '-w', 'packages/frontend']),
   );

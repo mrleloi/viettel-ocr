@@ -14,6 +14,7 @@ describe('CreateSchemaUseCase', () => {
     schemaRepo = {
       findById: jest.fn(),
       findActive: jest.fn(),
+    findAll: jest.fn(),
       findByNccTaxId: jest.fn(),
       save: jest.fn(),
     };

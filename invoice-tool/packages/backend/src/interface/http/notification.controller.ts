@@ -18,7 +18,7 @@ import {
  * - POST /api/notifications/read-all — mark all as read
  */
 @ApiTags('Notifications')
-@Controller('api/notifications')
+@Controller('notifications')
 export class NotificationController {
   constructor(
     private readonly listNotifications: ListNotificationsUseCase,

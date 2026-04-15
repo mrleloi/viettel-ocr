@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 /**
  * DTO for creating a batch upload.
@@ -32,6 +33,8 @@ export class CreateBatchDto {
     default: false,
   })
   @IsOptional()
+  // Multipart form-data sends booleans as strings — coerce 'true'/'1' → true.
+  @Transform(({ value }) => value === true || value === 'true' || value === '1' || value === 1)
   @IsBoolean()
   autoCreateSchemaOnNewPattern?: boolean;
 }

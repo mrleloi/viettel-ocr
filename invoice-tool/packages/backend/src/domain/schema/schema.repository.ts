@@ -19,6 +19,12 @@ export interface ISchemaRepository {
   findActive(): Promise<Schema[]>;
 
   /**
+   * Find all schemas (active + draft, excluding archived).
+   * @returns Array of all non-archived schemas
+   */
+  findAll(): Promise<Schema[]>;
+
+  /**
    * Find a schema by the NCC's tax ID.
    * @param taxId NCC tax ID (MST)
    * @returns The Schema if found, null otherwise

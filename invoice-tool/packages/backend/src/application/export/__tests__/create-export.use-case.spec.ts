@@ -125,10 +125,33 @@ describe('CreateExportUseCase', () => {
     it('should throw for invalid format', async () => {
       await expect(
         sut.execute({
-          format: 'xlsx' as 'csv',
+          format: 'pdf' as 'csv',
           batchId: 'batch-1',
         }),
       ).rejects.toThrow(/Invalid export format/);
+    });
+
+    it('should export approved invoices as XLSX workbook', async () => {
+      const inv1 = createApprovedInvoice({ invoiceNumber: 'INV-X1' });
+      const inv2 = createApprovedInvoice({ invoiceNumber: 'INV-X2' });
+      invoiceRepo.findByBatchId.mockResolvedValue([inv1, inv2]);
+
+      const result = await sut.execute({
+        format: 'xlsx',
+        batchId: 'batch-1',
+      });
+
+      expect(result.recordCount).toBe(2);
+      expect(result.filename).toContain('.xlsx');
+      expect(result.fileSizeBytes).toBeGreaterThan(0);
+      expect(fileStorage.saveFile).toHaveBeenCalledTimes(1);
+
+      // XLSX files start with the ZIP signature "PK\x03\x04"
+      const savedBuffer = fileStorage.saveFile.mock.calls[0][1];
+      expect(savedBuffer[0]).toBe(0x50);
+      expect(savedBuffer[1]).toBe(0x4b);
+      expect(savedBuffer[2]).toBe(0x03);
+      expect(savedBuffer[3]).toBe(0x04);
     });
 
     it('should filter only approved invoices from batch', async () => {

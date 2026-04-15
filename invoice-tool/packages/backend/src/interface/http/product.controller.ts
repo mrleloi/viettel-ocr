@@ -61,7 +61,9 @@ export class ProductController {
       id: p.id,
       productCode: p.productCode,
       productName: p.productName,
+      unit: p.unit,
       category: p.category,
+      isActive: p.isActive,
       syncStatus: p.syncStatus,
       lastSyncedAt: p.lastSyncedAt?.toISOString() ?? null,
     }));

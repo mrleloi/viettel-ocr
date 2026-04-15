@@ -35,7 +35,7 @@ interface RawApiResponse {
 /**
  * Default mock server URL used when no real Viettel Product API URL is configured.
  */
-const MOCK_SERVER_URL = 'http://localhost:3002';
+const MOCK_SERVER_URL = 'http://localhost:8887';
 
 /**
  * Viettel Product API client implementing the IProductApiClient domain port.

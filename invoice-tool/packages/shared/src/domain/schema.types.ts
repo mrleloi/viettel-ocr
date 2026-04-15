@@ -3,7 +3,7 @@
  */
 
 /** Schema status */
-export type SchemaStatus = 'active' | 'inactive' | 'draft';
+export type SchemaStatus = 'active' | 'inactive' | 'draft' | 'archived';
 
 /** Fingerprint rule type */
 export type FingerprintRuleType = 'mst_exact' | 'keyword' | 'symbol_regex' | 'custom';

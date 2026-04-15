@@ -35,10 +35,10 @@ async function bootstrap(): Promise<void> {
       .build();
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document);
-    console.log('📖 Swagger UI available at http://localhost:${process.env["PORT"] ?? 3000}/api/docs');
+    console.log(`📖 Swagger UI available at http://localhost:${process.env['PORT'] ?? 8889}/api/docs`);
   }
 
-  const port = process.env['PORT'] ?? 3000;
+  const port = process.env['PORT'] ?? 8889;
   await app.listen(port);
   console.log(`🚀 Backend running on http://localhost:${port}`);
 }

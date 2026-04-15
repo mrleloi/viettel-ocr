@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, ne } from 'drizzle-orm';
 import type { AppDatabase } from '../connection';
 import { DATABASE_TOKEN } from '../connection';
 import { schemas } from '../schema';
@@ -32,6 +32,15 @@ export class SchemaRepositoryImpl implements ISchemaRepository {
    */
   async findActive(): Promise<Schema[]> {
     const rows = await this.db.select().from(schemas).where(eq(schemas.status, 'active')).all();
+    return rows.map((row) => Schema.reconstitute(this.toDomain(row)));
+  }
+
+  /**
+   * Find all schemas (active + draft, excluding archived).
+   * @returns Array of all non-archived schemas
+   */
+  async findAll(): Promise<Schema[]> {
+    const rows = await this.db.select().from(schemas).where(ne(schemas.status, 'archived')).all();
     return rows.map((row) => Schema.reconstitute(this.toDomain(row)));
   }
 

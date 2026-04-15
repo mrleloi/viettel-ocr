@@ -5,7 +5,7 @@ import { Schema } from '../../domain/schema/schema.entity';
 import { FingerprintRule } from '../../domain/schema/fingerprint-rule.entity';
 import { FieldDefinition } from '../../domain/schema/field-definition.entity';
 import { TaxId } from '../../domain/shared/value-objects/tax-id.vo';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
 
 /** Input for creating a schema */
 export interface CreateSchemaInput {
@@ -80,7 +80,7 @@ export class CreateSchemaUseCase {
     // Check for duplicate by NCC tax ID
     const existing = await this.schemaRepo.findByNccTaxId(input.nccTaxId);
     if (existing) {
-      throw new Error(`Schema already exists for NCC tax ID: ${input.nccTaxId}`);
+      throw new ConflictException(`Schema already exists for NCC tax ID: ${input.nccTaxId}`);
     }
 
     // Create schema entity

@@ -61,10 +61,26 @@ describe('ExportController', () => {
       expect(response.body.recordCount).toBe(10);
     });
 
+    it('should create an XLSX export', async () => {
+      mockCreateExportUseCase.execute.mockResolvedValue({
+        exportId: 'exp-xlsx-1',
+        filename: 'exp-xlsx-1.xlsx',
+        recordCount: 5,
+        fileSizeBytes: 4096,
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/api/exports')
+        .send({ format: 'xlsx', batchId: 'batch-1' })
+        .expect(201);
+
+      expect(response.body.filename).toContain('.xlsx');
+    });
+
     it('should return 400 for invalid format', async () => {
       await request(app.getHttpServer())
         .post('/api/exports')
-        .send({ format: 'xlsx' })
+        .send({ format: 'pdf' })
         .expect(400);
     });
   });
@@ -72,7 +88,10 @@ describe('ExportController', () => {
   describe('GET /api/exports/:id/download', () => {
     it('should download a CSV export file', async () => {
       const csvContent = 'id,invoiceNumber\ninv-1,INV-001';
-      mockFileStorage.readFile.mockResolvedValueOnce(Buffer.from(csvContent));
+      mockFileStorage.readFile.mockImplementation((path: string) => {
+        if (path.endsWith('.csv')) return Promise.resolve(Buffer.from(csvContent));
+        return Promise.reject(new Error('not found'));
+      });
 
       const response = await request(app.getHttpServer())
         .get('/api/exports/exp-123/download')
@@ -80,6 +99,21 @@ describe('ExportController', () => {
 
       expect(response.headers['content-type']).toContain('text/csv');
       expect(response.headers['content-disposition']).toContain('exp-123.csv');
+    });
+
+    it('should download an XLSX export file with spreadsheet MIME type', async () => {
+      const xlsxContent = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00]);
+      mockFileStorage.readFile.mockImplementation((path: string) => {
+        if (path.endsWith('.xlsx')) return Promise.resolve(xlsxContent);
+        return Promise.reject(new Error('not found'));
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/api/exports/exp-xlsx-1/download')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('spreadsheetml.sheet');
+      expect(response.headers['content-disposition']).toContain('exp-xlsx-1.xlsx');
     });
 
     it('should return 404 when export file not found', async () => {

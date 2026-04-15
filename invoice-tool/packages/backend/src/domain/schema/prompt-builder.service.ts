@@ -30,6 +30,8 @@ export interface FieldData {
   readonly isRequired: boolean;
   /** Extraction hint for the AI model */
   readonly extractionHint: string | null;
+  /** Canonical output key for field-level mapping (e.g., "invoiceNumber") */
+  readonly outputKey: string | null;
 }
 
 /**
@@ -106,7 +108,8 @@ export class PromptBuilder {
       parts.push('Fields to extract:');
       for (const field of fields) {
         const reqMarker = field.isRequired ? ' [required]' : ' [optional]';
-        let line = `- ${field.fieldName} (${field.dataType}): ${field.displayName}${reqMarker}`;
+        const outputKeyInfo = field.outputKey ? ` → output as "${field.outputKey}"` : '';
+        let line = `- ${field.fieldName} (${field.dataType}): ${field.displayName}${reqMarker}${outputKeyInfo}`;
         if (field.extractionHint) {
           line += ` — Hint: ${field.extractionHint}`;
         }

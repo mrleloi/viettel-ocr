@@ -247,6 +247,11 @@ function initializeTables(sqlite: Database.Database): void {
   } catch {
     // Column already exists — ignore
   }
+  try {
+    sqlite.exec(`ALTER TABLE field_definitions ADD COLUMN output_key TEXT`);
+  } catch {
+    // Column already exists — ignore
+  }
 }
 
 /**

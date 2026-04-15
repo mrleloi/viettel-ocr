@@ -2,6 +2,18 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { LineItemResponseDto } from './line-item-response.dto';
 
 /**
+ * Single validation issue (error or warning) emitted by ValidatorService.
+ */
+export interface ValidationIssueDto {
+  field: string;
+  rule: string;
+  message: string;
+  severity: 'error' | 'warning';
+  expected?: string;
+  actual?: string;
+}
+
+/**
  * Full response DTO for an invoice, including all extraction and processing data.
  */
 export class InvoiceResponseDto {
@@ -76,8 +88,8 @@ export class InvoiceResponseDto {
   @ApiPropertyOptional({ description: 'Per-field confidence scores (parsed JSON object)' })
   fieldConfidences?: Record<string, number> | null;
 
-  @ApiPropertyOptional({ description: 'Validation errors and warnings' })
-  validationErrors?: { errors: string[]; warnings: string[] } | null;
+  @ApiPropertyOptional({ description: 'Validation errors and warnings (each entry has field, rule, message, severity)' })
+  validationErrors?: { errors: ValidationIssueDto[]; warnings: ValidationIssueDto[] } | null;
 
   @ApiPropertyOptional({ description: 'Classification method (fingerprint, llm, manual, frontend_hint)' })
   classificationMethod?: string | null;
@@ -111,6 +123,29 @@ export class InvoiceResponseDto {
 
   @ApiPropertyOptional({ description: 'Last updated timestamp (ISO 8601)' })
   updatedAt?: string | null;
+
+  @ApiPropertyOptional({ description: 'Confidence score breakdown with component scores, weights, and penalties' })
+  confidenceDetails?: {
+    overallScore: number;
+    componentScores: {
+      hintScore: number;
+      fingerprintScore: number;
+      extractionQuality: number;
+      validationScore: number;
+      mappingScore: number;
+    };
+    weights: {
+      hint: number;
+      fingerprint: number;
+      extraction: number;
+      validation: number;
+      mapping: number;
+    };
+    penalties: string[];
+  } | null;
+
+  @ApiPropertyOptional({ description: 'AI extraction prompt used during processing' })
+  aiPrompt?: string | null;
 }
 
 /**

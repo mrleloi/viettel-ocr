@@ -97,6 +97,14 @@ export class Schema {
   }
 
   /**
+   * Archive the schema (soft-delete — preserves data for history).
+   * Archived schemas do not participate in classification.
+   */
+  archive(): void {
+    this.props = { ...this.props, status: 'archived' as SchemaStatus, updatedAt: new Date() };
+  }
+
+  /**
    * Update the prompt template and increment version.
    * @param template New prompt template string
    */

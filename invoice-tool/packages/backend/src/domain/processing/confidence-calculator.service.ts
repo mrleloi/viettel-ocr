@@ -164,12 +164,16 @@ export class ConfidenceCalculator {
   private calculateExtractionQuality(
     fieldConfidences: Record<string, number>,
   ): number {
-    const values = Object.values(fieldConfidences);
-    if (values.length === 0) {
+    // Filter to only numeric values — AI may return nested objects/arrays
+    // for keys like "line_items" which are not scalar confidence scores
+    const numericValues = Object.values(fieldConfidences).filter(
+      (val): val is number => typeof val === 'number' && !isNaN(val),
+    );
+    if (numericValues.length === 0) {
       return 0.0;
     }
-    const sum = values.reduce((acc, val) => acc + val, 0);
-    return sum / values.length;
+    const sum = numericValues.reduce((acc, val) => acc + val, 0);
+    return sum / numericValues.length;
   }
 
   /**

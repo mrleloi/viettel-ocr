@@ -14,8 +14,14 @@ export class ProductResponseDto {
   @ApiProperty({ description: 'Product name' })
   productName!: string;
 
+  @ApiPropertyOptional({ description: 'Unit of measurement (cái, kg, m, etc.)' })
+  unit?: string | null;
+
   @ApiPropertyOptional({ description: 'Product category' })
   category?: string | null;
+
+  @ApiProperty({ description: 'Whether the product is active' })
+  isActive!: boolean;
 
   @ApiProperty({ description: 'Sync status', enum: ['synced', 'local_only', 'conflict'] })
   syncStatus!: string;

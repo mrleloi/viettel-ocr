@@ -39,6 +39,7 @@ describe('SchemaController', () => {
   const mockSchemaRepo = {
     findById: jest.fn(),
     findActive: jest.fn(),
+    findAll: jest.fn(),
     findByNccTaxId: jest.fn(),
     save: jest.fn(),
   };
@@ -107,7 +108,7 @@ describe('SchemaController', () => {
         })
         .expect(201);
 
-      expect(response.body.schemaId).toBe('schema-1');
+      expect(response.body.id).toBe('schema-1');
       expect(response.body.rulesCreated).toBe(1);
       expect(response.body.fieldsCreated).toBe(2);
     });
@@ -122,7 +123,7 @@ describe('SchemaController', () => {
 
   describe('GET /api/schemas', () => {
     it('should return active schemas', async () => {
-      mockSchemaRepo.findActive.mockResolvedValue([
+      mockSchemaRepo.findAll.mockResolvedValue([
         {
           id: 'schema-1',
           name: 'Digiworld',
@@ -130,7 +131,9 @@ describe('SchemaController', () => {
           nccTaxId: '0302861742',
           status: 'active',
           description: 'Test schema',
+          version: 1,
           createdAt: new Date('2026-01-01'),
+          updatedAt: new Date('2026-01-02'),
         },
       ]);
 
@@ -152,7 +155,9 @@ describe('SchemaController', () => {
         nccTaxId: '0302861742',
         status: 'active',
         description: null,
+        version: 2,
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-03'),
       });
 
       const response = await request(app.getHttpServer())
@@ -178,6 +183,18 @@ describe('SchemaController', () => {
         name: 'Updated Name',
         status: 'active',
       });
+      // Controller re-fetches schema after update
+      mockSchemaRepo.findById.mockResolvedValue({
+        id: 'schema-1',
+        name: 'Updated Name',
+        nccName: 'Digiworld Corp',
+        nccTaxId: '0302861742',
+        status: 'active',
+        description: null,
+        version: 2,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-04'),
+      });
 
       const response = await request(app.getHttpServer())
         .put('/api/schemas/schema-1')
@@ -185,6 +202,7 @@ describe('SchemaController', () => {
         .expect(200);
 
       expect(response.body.name).toBe('Updated Name');
+      expect(response.body.version).toBe(2);
     });
   });
 

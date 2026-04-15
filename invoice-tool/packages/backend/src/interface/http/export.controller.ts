@@ -73,11 +73,10 @@ export class ExportController {
     @Param('id') id: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    // Try both csv and json extensions
     let content: Buffer | null = null;
     let filename = '';
 
-    for (const ext of ['csv', 'json']) {
+    for (const ext of ['xlsx', 'csv', 'json']) {
       const path = `exports/${id}.${ext}`;
       try {
         content = await this.fileStorage.readFile(path);
@@ -92,9 +91,11 @@ export class ExportController {
       throw new NotFoundException(`Export file not found: ${id}`);
     }
 
-    const contentType = filename.endsWith('.csv')
-      ? 'text/csv'
-      : 'application/json';
+    const contentType = filename.endsWith('.xlsx')
+      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      : filename.endsWith('.csv')
+        ? 'text/csv; charset=utf-8'
+        : 'application/json';
 
     res.set({
       'Content-Type': contentType,

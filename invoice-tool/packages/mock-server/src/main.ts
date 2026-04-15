@@ -2,7 +2,7 @@ import express from 'express';
 import { router as productsRouter } from './routes/products';
 
 const app = express();
-const port = parseInt(process.env['PORT'] ?? '3002', 10);
+const port = parseInt(process.env['PORT'] ?? '8887', 10);
 
 app.use(express.json());
 

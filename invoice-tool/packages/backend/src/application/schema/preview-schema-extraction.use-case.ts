@@ -73,6 +73,7 @@ export class PreviewSchemaExtractionUseCase {
         dataType: f.dataType,
         isRequired: f.isRequired,
         extractionHint: f.extractionHint,
+        outputKey: f.outputKey,
       })),
     );
 

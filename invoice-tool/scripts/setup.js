@@ -90,7 +90,7 @@ async function setup() {
   console.log('\n  Next steps:');
   console.log('  1. Edit config.env and set GEMINI_API_KEY');
   console.log('  2. Run: npm start');
-  console.log('  3. Open: http://localhost:3001\n');
+  console.log('  3. Open: http://localhost:8888\n');
 }
 
 setup().catch((err) => {

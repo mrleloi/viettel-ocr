@@ -94,7 +94,7 @@ describe('InvoiceController', () => {
     ocrRawText: 'OCR text content',
     extractedRawJson: '{"invoice_number":"INV-001"}',
     fieldConfidences: '{"invoice_number":0.95,"seller_tax_id":0.88}',
-    validationErrors: '{"errors":[],"warnings":["Minor mismatch"]}',
+    validationErrors: '{"errors":[],"warnings":[{"field":"vatRate","rule":"vat_rate_missing","message":"Minor mismatch","severity":"warning"}]}',
     classificationMethod: 'fingerprint',
     classificationConfidence: 0.92,
     storagePath: 'uploads/inv-1/invoice.pdf',
@@ -159,7 +159,10 @@ describe('InvoiceController', () => {
       expect(response.body.lineItems[0].name).toBe('Widget A');
       expect(response.body.ocrRawText).toBe('OCR text content');
       expect(response.body.fieldConfidences).toEqual({ invoice_number: 0.95, seller_tax_id: 0.88 });
-      expect(response.body.validationErrors).toEqual({ errors: [], warnings: ['Minor mismatch'] });
+      expect(response.body.validationErrors).toEqual({
+        errors: [],
+        warnings: [{ field: 'vatRate', rule: 'vat_rate_missing', message: 'Minor mismatch', severity: 'warning' }],
+      });
       expect(response.body.classificationMethod).toBe('fingerprint');
       expect(response.body.classificationConfidence).toBe(0.92);
       expect(response.body.storagePath).toBe('uploads/inv-1/invoice.pdf');

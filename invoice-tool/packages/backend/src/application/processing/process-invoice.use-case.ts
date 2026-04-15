@@ -20,6 +20,11 @@ import type { Invoice, ExtractedDataProps } from '../../domain/invoice/invoice.e
 import type { ClassificationMethod } from '@invoice-tool/shared';
 import { CreateNotificationUseCase } from '../notification/create-notification.use-case';
 import { CreateSchemaUseCase } from '../schema/create-schema.use-case';
+import type { IMappingRepository } from '../../domain/mapping/mapping.repository';
+import type { IProductRepository } from '../../domain/product/product.repository';
+import { FuzzyMatcher } from '../../domain/mapping/fuzzy-matcher.service';
+import type { ProductData } from '../../domain/mapping/fuzzy-matcher.service';
+import { Mapping } from '../../domain/mapping/mapping.entity';
 
 /** Input for the processing use case */
 export interface ProcessInvoiceInput {
@@ -55,15 +60,66 @@ export interface ProcessInvoiceOutput {
 const DEFAULT_AUTO_APPROVE_THRESHOLD = 0.85;
 
 /**
+ * Fallback extraction prompt for invoices that don't match any known schema.
+ *
+ * Enforces:
+ * - Snake_case field names matching the entity (no `total_amount`, `items`, etc.)
+ * - Integer VND values (no Vietnamese thousands separators that would parse as decimals)
+ * - ISO 8601 dates (YYYY-MM-DD)
+ * - Confidence map keyed by the same field names
+ *
+ * Without this contract, Gemini freely picks names like `total_amount` / `total_tax_amount` / `items`
+ * which the mapper cannot recognize, leaving lineItems/total/vatAmount null.
+ */
+const NO_SCHEMA_FALLBACK_PROMPT = `Trích xuất dữ liệu từ hóa đơn Việt Nam này. Trả về JSON với cấu trúc sau:
+
+{
+  "invoice_number": string | null,
+  "invoice_symbol": string | null,
+  "invoice_date": "YYYY-MM-DD" | null,
+  "seller_name": string | null,
+  "seller_tax_id": string | null,
+  "buyer_name": string | null,
+  "buyer_tax_id": string | null,
+  "subtotal": integer | null,
+  "vat_rate": integer | null,
+  "vat_amount": integer | null,
+  "total": integer | null,
+  "po_number": string | null,
+  "line_items": [
+    {
+      "name": string,
+      "unit": string | null,
+      "quantity": number,
+      "unit_price": integer,
+      "amount": integer,
+      "vat_rate": integer | null,
+      "vat_amount": integer | null,
+      "total_with_vat": integer | null
+    }
+  ],
+  "field_confidences": { "<field_name>": number /* 0..1 */ }
+}
+
+QUAN TRỌNG:
+- Tất cả số tiền là số nguyên VND (không có dấu phân cách hàng nghìn, không có thập phân).
+  Ví dụ: "881.900" trên hóa đơn = 881900 (KHÔNG phải 881.9).
+- vat_rate là phần trăm số nguyên (8 nghĩa là 8%, không phải 0.08).
+- Dùng ĐÚNG tên trường ở trên (snake_case). Không dùng "items", "total_amount", "total_tax_amount".
+- Nếu không tìm thấy trường nào, trả về null kèm field_confidences[trường] = 0.
+- Trả về CHÍNH XÁC JSON, không kèm văn bản giải thích.`;
+
+/**
  * ProcessInvoiceUseCase — orchestrates the full invoice processing pipeline.
  *
  * Pipeline stages:
  * 1. Classify — fingerprint rules then LLM fallback
  * 2. Extract — build prompt, call OCR/AI service
- * 3. Validate — check business rules
- * 4. Score — compute confidence
- * 5. Maybe-create-schema — auto-create draft schema or emit suggestion
- * 6. Route — auto-approve or send to review
+ * 3. Map — field-level re-keying + product-line fuzzy matching
+ * 4. Validate — check business rules
+ * 5. Score — compute confidence
+ * 6. Maybe-create-schema — auto-create draft schema or emit suggestion
+ * 7. Route — auto-approve or send to review
  */
 @Injectable()
 export class ProcessInvoiceUseCase {
@@ -72,6 +128,9 @@ export class ProcessInvoiceUseCase {
   private readonly promptBuilder = new PromptBuilder();
   private readonly validator = new ValidatorService();
   private readonly confidenceCalculator = new ConfidenceCalculator();
+  private readonly fuzzyMatcher = new FuzzyMatcher();
+  /** Tracks the AI prompt used in the current extract stage (for trace logging) */
+  private lastExtractPrompt: string | null = null;
 
   constructor(
     @Inject('IInvoiceRepository') private readonly invoiceRepo: IInvoiceRepository,
@@ -84,6 +143,8 @@ export class ProcessInvoiceUseCase {
     @Optional() private readonly createNotification?: CreateNotificationUseCase,
     @Optional() @Inject('IProcessingTraceRepository') private readonly traceRepo?: IProcessingTraceRepository,
     @Optional() private readonly createSchemaUseCase?: CreateSchemaUseCase,
+    @Optional() @Inject('IMappingRepository') private readonly mappingRepo?: IMappingRepository,
+    @Optional() @Inject('IProductRepository') private readonly productRepo?: IProductRepository,
   ) {}
 
   /**
@@ -127,8 +188,13 @@ export class ProcessInvoiceUseCase {
         classificationConfidence = 0.7; // hint-only confidence
       }
 
-      // Try fingerprint classification
-      const rules = await this.ruleRepo.findAllActive();
+      // Try fingerprint classification (only from active schemas)
+      const allRules = await this.ruleRepo.findAllActive();
+      // Filter: only include rules belonging to active schemas
+      const activeSchemaIds = new Set(
+        (await this.schemaRepo.findActive()).map(s => s.id),
+      );
+      const rules = allRules.filter(r => activeSchemaIds.has(r.schemaId));
       if (rules.length > 0) {
         const ruleData: FingerprintRuleData[] = rules.map(r => ({
           id: r.id,
@@ -181,7 +247,10 @@ export class ProcessInvoiceUseCase {
 
       const classifyDuration = Date.now() - stageStart;
       stages.push({ stage: 'classify', status: 'completed', durationMs: classifyDuration });
-      await this.persistTrace(invoice.id, 'classify', 'completed', classifyDuration);
+      await this.persistTrace(invoice.id, 'classify', 'completed', classifyDuration, undefined,
+        JSON.stringify({ method: classificationMethod, confidence: classificationConfidence, schemaId: matchedSchemaId }),
+        JSON.stringify({ matchedSchemaId, classificationMethod, classificationConfidence, fingerprintScore }),
+      );
     } catch (error) {
       const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
       this.logger.error(`[classify] failed for invoice ${invoice.id}: ${msg}`);
@@ -218,15 +287,19 @@ export class ProcessInvoiceUseCase {
               dataType: f.dataType as FieldData['dataType'],
               isRequired: f.isRequired,
               extractionHint: f.extractionHint,
+              outputKey: f.outputKey,
             }));
 
             const prompt = this.promptBuilder.buildKnownSchemaPrompt(schemaData, fieldData);
+            this.lastExtractPrompt = prompt.extractionPrompt;
             ocrResult = await this.ocrService.extract(pdfBase64, prompt.extractionPrompt);
           } else {
-            ocrResult = await this.ocrService.extract(pdfBase64, 'Extract invoice data. Return JSON.');
+            this.lastExtractPrompt = NO_SCHEMA_FALLBACK_PROMPT;
+            ocrResult = await this.ocrService.extract(pdfBase64, NO_SCHEMA_FALLBACK_PROMPT);
           }
         } else {
-          ocrResult = await this.ocrService.extract(pdfBase64, 'Extract invoice data. Return JSON.');
+          this.lastExtractPrompt = NO_SCHEMA_FALLBACK_PROMPT;
+          ocrResult = await this.ocrService.extract(pdfBase64, NO_SCHEMA_FALLBACK_PROMPT);
         }
       }
 
@@ -242,7 +315,10 @@ export class ProcessInvoiceUseCase {
 
       const extractDuration = Date.now() - stageStart;
       stages.push({ stage: 'extract', status: 'completed', durationMs: extractDuration });
-      await this.persistTrace(invoice.id, 'extract', 'completed', extractDuration);
+      await this.persistTrace(invoice.id, 'extract', 'completed', extractDuration, undefined,
+        JSON.stringify({ prompt: this.lastExtractPrompt?.slice(0, 2000) }),
+        JSON.stringify({ fieldsExtracted: Object.keys(ocrResult?.extractedData ?? {}), hasLineItems: Array.isArray(ocrResult?.extractedData?.['line_items']) }),
+      );
     } catch (error) {
       const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
       this.logger.error(`[extract] failed for invoice ${invoice.id}: ${msg}`);
@@ -252,7 +328,97 @@ export class ProcessInvoiceUseCase {
       return this.failInvoice(invoice, stages);
     }
 
-    // ============ STAGE 3: VALIDATE ============
+    // ============ STAGE 3: MAP ============
+    let mappingCompleteness = 0;
+    try {
+      const stageStart = Date.now();
+
+      if (matchedSchemaId && this.mappingRepo && this.productRepo) {
+        const lineItems = invoice.lineItems;
+        if (lineItems.length > 0) {
+          let mappedCount = 0;
+
+          // Load all Viettel products for fuzzy matching
+          const allProducts = await this.productRepo.findAll();
+          const productData: ProductData[] = allProducts.map(p => ({
+            id: p.id,
+            productCode: p.productCode,
+            productName: p.productName,
+            brand: null,
+          }));
+
+          for (const li of lineItems) {
+            if (!li.name) continue;
+
+            // Step 1: Check existing mapping in the mapping table
+            const existingMapping = await this.mappingRepo.findByPartnerName(
+              li.name,
+              matchedSchemaId,
+            );
+
+            if (existingMapping && existingMapping.status === 'active' && existingMapping.viettelProductId) {
+              // Exact match found — increment usage
+              await this.mappingRepo.incrementUsage(existingMapping.id);
+              mappedCount++;
+              continue;
+            }
+
+            // Step 2: Fuzzy match against Viettel product catalog
+            if (productData.length > 0) {
+              const matches = this.fuzzyMatcher.match(li.name, productData, {
+                topN: 1,
+                threshold: 0.7,
+              });
+
+              if (matches.length > 0) {
+                const best = matches[0];
+                // Auto-create a pending_review mapping for review
+                try {
+                  const newMapping = Mapping.create({
+                    schemaId: matchedSchemaId,
+                    partnerProductName: li.name,
+                    viettelProductId: best.productId,
+                    viettelProductCode: best.productCode,
+                    viettelProductName: best.productName,
+                    source: 'auto_learned',
+                    confidence: best.score,
+                  });
+                  await this.mappingRepo.save(newMapping);
+                  mappedCount++;
+                } catch (mapErr) {
+                  this.logger.warn(`[map] Failed to create auto mapping for "${li.name}"`, mapErr);
+                }
+              }
+            }
+          }
+
+          mappingCompleteness = lineItems.length > 0
+            ? mappedCount / lineItems.length
+            : 0;
+        } else {
+          // No line items to map — consider fully mapped
+          mappingCompleteness = 1.0;
+        }
+      } else {
+        // No schema or no mapping repo — skip mapping but don't penalize
+        mappingCompleteness = 1.0;
+        stages.push({ stage: 'map', status: 'skipped', durationMs: 0 });
+      }
+
+      if (!stages.find(s => s.stage === 'map')) {
+        const mapDuration = Date.now() - stageStart;
+        stages.push({ stage: 'map', status: 'completed', durationMs: mapDuration });
+        await this.persistTrace(invoice.id, 'map', 'completed', mapDuration);
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[map] failed for invoice ${invoice.id}: ${msg}`);
+      stages.push({ stage: 'map', status: 'failed', durationMs: 0, error: msg });
+      await this.persistTrace(invoice.id, 'map', 'failed', 0, msg);
+      // Map stage failure is non-fatal — continue pipeline with mappingCompleteness = 0
+    }
+
+    // ============ STAGE 4: VALIDATE ============
     let validationPassRate = 0;
     try {
       const stageStart = Date.now();
@@ -300,7 +466,7 @@ export class ProcessInvoiceUseCase {
       return this.failInvoice(invoice, stages);
     }
 
-    // ============ STAGE 4: SCORE ============
+    // ============ STAGE 5: SCORE ============
     let overallConfidence = 0;
     try {
       const stageStart = Date.now();
@@ -322,7 +488,7 @@ export class ProcessInvoiceUseCase {
         fieldConfidences,
         requiredFields,
         validationPassRate,
-        mappingCompleteness: 0, // No mapping stage in this session
+        mappingCompleteness,
         hintMatchesFingerprint: batch?.hintSchemaId === matchedSchemaId && !!batch?.hintSchemaId,
         hasHint: !!batch?.hintSchemaId,
       };
@@ -335,7 +501,16 @@ export class ProcessInvoiceUseCase {
 
       const scoreDuration = Date.now() - stageStart;
       stages.push({ stage: 'score', status: 'completed', durationMs: scoreDuration });
-      await this.persistTrace(invoice.id, 'score', 'completed', scoreDuration);
+      // Save full confidence breakdown to trace for frontend display
+      await this.persistTrace(invoice.id, 'score', 'completed', scoreDuration, undefined,
+        JSON.stringify(confidenceInput),
+        JSON.stringify({
+          overallScore: confidenceResult.overallScore,
+          componentScores: confidenceResult.componentScores,
+          penalties: confidenceResult.penalties,
+          weights: { hint: 0.30, fingerprint: 0.25, extraction: 0.25, validation: 0.10, mapping: 0.10 },
+        }),
+      );
     } catch (error) {
       const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
       this.logger.error(`[score] failed for invoice ${invoice.id}: ${msg}`);
@@ -361,26 +536,57 @@ export class ProcessInvoiceUseCase {
       }
     }
 
-    // ============ STAGE 5: MAYBE CREATE SCHEMA ============
+    // ============ STAGE 6: MAYBE CREATE SCHEMA ============
     try {
       const stageStart = Date.now();
 
       if (!matchedSchemaId) {
         // No schema matched — check auto-create flag
         if (batch?.autoCreateSchemaOnNewPattern) {
-          // Auto-create a draft schema from extracted data
+          // Auto-create schema WITH fingerprint rules + field definitions from extracted data
           try {
             const sellerName = invoice.sellerName ?? 'Unknown';
             const sellerTaxId = invoice.sellerTaxId ?? `auto-${Date.now()}`;
+
+            // Build fingerprint rules from extracted data
+            const autoRules: Array<{ ruleType: string; pattern: string; priority: number }> = [];
+            if (invoice.sellerTaxId) {
+              autoRules.push({ ruleType: 'mst_exact', pattern: invoice.sellerTaxId, priority: 100 });
+            }
+            if (invoice.sellerName) {
+              autoRules.push({ ruleType: 'keyword', pattern: invoice.sellerName, priority: 50 });
+            }
+
+            // Build field definitions from extracted data keys
+            const autoFields = this.detectFieldDefinitions(invoice);
+
             const schemaResult = await this.createSchemaUseCase?.execute({
-              name: `Auto: ${sellerName} (${new Date().toISOString().slice(0, 10)})`,
+              name: `${sellerName} (${new Date().toISOString().slice(0, 10)})`,
               nccName: sellerName,
               nccTaxId: sellerTaxId,
               description: `Tự động tạo từ hóa đơn ${invoice.id}`,
+              fingerprintRules: autoRules,
+              fieldDefinitions: autoFields,
             });
+
             if (schemaResult) {
               matchedSchemaId = schemaResult.schemaId;
-              this.logger.log(`[maybe-create-schema] Auto-created draft schema ${schemaResult.schemaId} for invoice ${invoice.id}`);
+
+              // Activate schema immediately so it participates in future classify
+              const createdSchema = await this.schemaRepo.findById(schemaResult.schemaId);
+              if (createdSchema) {
+                createdSchema.activate();
+                await this.schemaRepo.save(createdSchema);
+              }
+
+              // Assign the new schema back to this invoice
+              invoice.assignSchema(matchedSchemaId);
+              await this.invoiceRepo.save(invoice);
+
+              this.logger.log(
+                `[maybe-create-schema] Auto-created & activated schema ${schemaResult.schemaId} ` +
+                `with ${autoRules.length} rules + ${autoFields.length} fields for invoice ${invoice.id}`,
+              );
             }
           } catch (createErr) {
             // Schema creation failed (e.g. duplicate taxId) — log warning, continue pipeline
@@ -413,7 +619,7 @@ export class ProcessInvoiceUseCase {
       // Don't fail the whole pipeline for this stage — continue to route
     }
 
-    // ============ STAGE 6: ROUTE ============
+    // ============ STAGE 7: ROUTE ============
     try {
       const stageStart = Date.now();
 
@@ -499,6 +705,12 @@ export class ProcessInvoiceUseCase {
 
   /**
    * Map OCR extraction result to ExtractedDataProps for the invoice entity.
+   *
+   * Defensive against LLM field-name drift: each canonical field has a list of
+   * acceptable aliases (e.g. `total` ↔ `total_amount`, `line_items` ↔ `items`).
+   * Numbers are parsed with Vietnamese-aware logic so `"881.900"` (thousands
+   * separator) becomes 881900, not 881.9.
+   *
    * @param ocrResult - OCR extraction result
    * @param schemaId - Matched schema ID
    * @param method - Classification method
@@ -511,51 +723,127 @@ export class ProcessInvoiceUseCase {
     method: ClassificationMethod,
     confidence: number,
   ): ExtractedDataProps {
-    const fields = ocrResult.extractedData as Record<string, { value: unknown; confidence?: number }>;
-    const getField = (name: string): string | null => {
-      const val = fields[name]?.value ?? (ocrResult.extractedData[name] as unknown);
+    const data = ocrResult.extractedData;
+
+    /** Read a field value, accepting either `{value}` envelope or raw value, across alias keys. */
+    const readRaw = (keys: readonly string[]): unknown => {
+      for (const key of keys) {
+        const direct = data[key];
+        if (direct !== undefined && direct !== null) {
+          if (typeof direct === 'object' && 'value' in (direct as Record<string, unknown>)) {
+            return (direct as { value: unknown }).value;
+          }
+          return direct;
+        }
+      }
+      return null;
+    };
+
+    const getString = (keys: readonly string[]): string | null => {
+      const val = readRaw(keys);
       return val != null ? String(val) : null;
     };
-    const getNumField = (name: string): number | null => {
-      const val = fields[name]?.value ?? (ocrResult.extractedData[name] as unknown);
-      return val != null ? Number(val) : null;
+
+    const getNumber = (keys: readonly string[]): number | null => {
+      const val = readRaw(keys);
+      return val != null ? this.parseVietnameseNumber(val) : null;
     };
+
+    const lineItemsRaw = readRaw(['line_items', 'items', 'lineItems']);
+    const lineItems = Array.isArray(lineItemsRaw)
+      ? (lineItemsRaw as Array<Record<string, unknown>>).map((li) => ({
+          name: li['name'] != null ? String(li['name']) : '',
+          unit: li['unit'] != null ? String(li['unit']) : null,
+          quantity: this.parseVietnameseNumber(li['quantity']) ?? 0,
+          unitPrice: this.parseVietnameseNumber(li['unit_price'] ?? li['unitPrice']) ?? 0,
+          amount: this.parseVietnameseNumber(
+            li['amount'] ?? li['line_total'] ?? li['lineTotal'],
+          ) ?? 0,
+          vatRate: this.parseVietnameseNumber(li['vat_rate'] ?? li['tax_rate'] ?? li['vatRate']),
+          vatAmount: this.parseVietnameseNumber(
+            li['vat_amount'] ?? li['tax_amount'] ?? li['vatAmount'],
+          ),
+          totalWithVat: this.parseVietnameseNumber(
+            li['total_with_vat'] ?? li['total_price'] ?? li['totalWithVat'],
+          ),
+        }))
+      : [];
 
     return {
       schemaId: schemaId,
       classificationMethod: method,
       classificationConfidence: confidence,
-      invoiceNumber: getField('invoice_number'),
-      invoiceSymbol: getField('invoice_symbol'),
-      invoiceDate: getField('invoice_date'),
+      invoiceNumber: getString(['invoice_number', 'invoiceNumber']),
+      invoiceSymbol: getString(['invoice_symbol', 'invoiceSymbol', 'symbol']),
+      invoiceDate: getString(['invoice_date', 'invoiceDate', 'date']),
       invoiceType: null,
-      sellerName: getField('seller_name'),
-      sellerTaxId: getField('seller_tax_id'),
-      buyerName: getField('buyer_name'),
-      buyerTaxId: getField('buyer_tax_id'),
-      subtotal: getNumField('subtotal'),
-      vatRate: getNumField('vat_rate'),
-      vatAmount: getNumField('vat_amount'),
-      total: getNumField('total'),
-      poNumber: getField('po_number'),
-      lineItems: Array.isArray(ocrResult.extractedData['line_items'])
-        ? (ocrResult.extractedData['line_items'] as Array<Record<string, unknown>>).map(li => ({
-            name: li['name'] ? String(li['name']) : '',
-            unit: li['unit'] ? String(li['unit']) : null,
-            quantity: li['quantity'] != null ? Number(li['quantity']) : 0,
-            unitPrice: li['unit_price'] != null ? Number(li['unit_price']) : 0,
-            amount: li['amount'] != null ? Number(li['amount']) : 0,
-            vatRate: li['vat_rate'] != null ? Number(li['vat_rate']) : null,
-            vatAmount: li['vat_amount'] != null ? Number(li['vat_amount']) : null,
-            totalWithVat: li['total_with_vat'] != null ? Number(li['total_with_vat']) : null,
-          }))
-        : [],
+      sellerName: getString(['seller_name', 'sellerName']),
+      sellerTaxId: getString(['seller_tax_id', 'sellerTaxId', 'seller_mst']),
+      buyerName: getString(['buyer_name', 'buyerName']),
+      buyerTaxId: getString(['buyer_tax_id', 'buyerTaxId', 'buyer_mst']),
+      subtotal: getNumber(['subtotal', 'sub_total', 'pre_tax_total']),
+      vatRate: getNumber(['vat_rate', 'tax_rate', 'vatRate']),
+      vatAmount: getNumber(['vat_amount', 'total_tax_amount', 'tax_amount', 'vatAmount']),
+      total: getNumber(['total', 'total_amount', 'grand_total', 'totalAmount']),
+      poNumber: getString(['po_number', 'poNumber']),
+      lineItems,
       ocrRawText: ocrResult.rawText,
       extractedRawJson: JSON.stringify(ocrResult.extractedData),
       fieldConfidences: Object.keys(ocrResult.fieldConfidences).length > 0
         ? JSON.stringify(ocrResult.fieldConfidences)
         : null,
     };
+  }
+
+  /**
+   * Parse a value as a number with Vietnamese-format awareness.
+   *
+   * Vietnamese invoices use `.` as thousands separator and `,` as decimal,
+   * the opposite of US/JS conventions. A naive `Number("881.900")` returns
+   * 881.9 instead of 881900. We assume any monetary value with three or more
+   * digits after the last `.` is using thousands grouping.
+   *
+   * @param val - Raw value to parse
+   * @returns Parsed number, or null if not parseable
+   */
+  private parseVietnameseNumber(val: unknown): number | null {
+    if (val == null) return null;
+    if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+    if (typeof val !== 'string') {
+      const n = Number(val);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    const trimmed = val.trim();
+    if (trimmed === '') return null;
+
+    // Strip currency symbols, percent signs, and whitespace; keep digits, separators, sign
+    const cleaned = trimmed.replace(/[^\d.,-]/g, '');
+    if (cleaned === '' || cleaned === '-') return null;
+
+    // Find the last separator (either `.` or `,`); whichever sits rightmost is
+    // the decimal candidate, the others are thousands groupings.
+    const lastSep = Math.max(cleaned.lastIndexOf('.'), cleaned.lastIndexOf(','));
+    if (lastSep === -1) {
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    const afterLast = cleaned.length - lastSep - 1;
+    let normalized: string;
+    if (afterLast === 3) {
+      // Exactly 3 digits after the last separator → thousands grouping (VND convention).
+      // Covers "881.900", "881,900", "1.234.567", "1,234,567".
+      normalized = cleaned.replace(/[.,]/g, '');
+    } else {
+      // Last separator is the decimal point — strip earlier separators, normalise to '.'.
+      const intPart = cleaned.slice(0, lastSep).replace(/[.,]/g, '');
+      const decPart = cleaned.slice(lastSep + 1);
+      normalized = `${intPart}.${decPart}`;
+    }
+
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : null;
   }
 
   /**
@@ -587,6 +875,8 @@ export class ProcessInvoiceUseCase {
     status: string,
     durationMs: number,
     errorMessage?: string,
+    inputData?: string,
+    outputData?: string,
   ): Promise<void> {
     try {
       if (this.traceRepo) {
@@ -596,11 +886,89 @@ export class ProcessInvoiceUseCase {
           status,
           durationMs,
           errorMessage: errorMessage ?? null,
+          inputData: inputData ?? null,
+          outputData: outputData ?? null,
         });
         await this.traceRepo.save(trace);
       }
     } catch (err) {
       this.logger.warn(`Failed to persist trace for ${stage}`, err);
     }
+  }
+
+  /**
+   * Detect field definitions from extracted invoice data.
+   * Maps known OCR field names to display names, data types, and required status.
+   * @param invoice - Invoice with extracted data
+   * @returns Array of field definition inputs for CreateSchemaUseCase
+   */
+  private detectFieldDefinitions(invoice: Invoice): Array<{
+    fieldName: string;
+    displayName: string;
+    dataType: string;
+    isRequired: boolean;
+    extractionHint?: string;
+  }> {
+    /** Known field metadata for Vietnamese invoices */
+    const FIELD_META: Record<string, { displayName: string; dataType: string; isRequired: boolean }> = {
+      invoice_number: { displayName: 'Số hóa đơn', dataType: 'string', isRequired: true },
+      invoice_symbol: { displayName: 'Ký hiệu', dataType: 'string', isRequired: true },
+      invoice_date: { displayName: 'Ngày hóa đơn', dataType: 'date', isRequired: true },
+      invoice_type: { displayName: 'Loại hóa đơn', dataType: 'string', isRequired: false },
+      seller_name: { displayName: 'Tên NCC', dataType: 'string', isRequired: true },
+      seller_tax_id: { displayName: 'MST NCC', dataType: 'string', isRequired: true },
+      buyer_name: { displayName: 'Tên người mua', dataType: 'string', isRequired: false },
+      buyer_tax_id: { displayName: 'MST người mua', dataType: 'string', isRequired: false },
+      subtotal: { displayName: 'Tiền trước thuế', dataType: 'integer', isRequired: true },
+      vat_rate: { displayName: 'Thuế suất (%)', dataType: 'number', isRequired: false },
+      vat_amount: { displayName: 'Tiền thuế', dataType: 'integer', isRequired: false },
+      total: { displayName: 'Tổng tiền', dataType: 'integer', isRequired: true },
+      po_number: { displayName: 'Số PO', dataType: 'string', isRequired: false },
+    };
+
+    const fields: Array<{ fieldName: string; displayName: string; dataType: string; isRequired: boolean; extractionHint?: string }> = [];
+    const props = invoice.toProps() as unknown as Record<string, unknown>;
+
+    // Map snake_case OCR names to camelCase entity props
+    const FIELD_TO_PROP: Record<string, string> = {
+      invoice_number: 'invoiceNumber', invoice_symbol: 'invoiceSymbol',
+      invoice_date: 'invoiceDate', invoice_type: 'invoiceType',
+      seller_name: 'sellerName', seller_tax_id: 'sellerTaxId',
+      buyer_name: 'buyerName', buyer_tax_id: 'buyerTaxId',
+      vat_rate: 'vatRate', vat_amount: 'vatAmount',
+      po_number: 'poNumber', subtotal: 'subtotal', total: 'total',
+    };
+
+    // Check each known field against extracted data
+    for (const [fieldName, meta] of Object.entries(FIELD_META)) {
+      const propName = FIELD_TO_PROP[fieldName] ?? fieldName;
+      const value = props[propName];
+
+      if (value !== null && value !== undefined) {
+        fields.push({
+          fieldName,
+          displayName: meta.displayName,
+          dataType: meta.dataType,
+          isRequired: meta.isRequired,
+          extractionHint: `Detected from first invoice: ${String(value).slice(0, 50)}`,
+        });
+      }
+    }
+
+    // Ensure at minimum we have the core fields even if extraction missed them
+    const existingNames = new Set(fields.map(f => f.fieldName));
+    for (const coreName of ['invoice_number', 'seller_tax_id', 'total']) {
+      if (!existingNames.has(coreName)) {
+        const meta = FIELD_META[coreName];
+        fields.push({
+          fieldName: coreName,
+          displayName: meta.displayName,
+          dataType: meta.dataType,
+          isRequired: meta.isRequired,
+        });
+      }
+    }
+
+    return fields;
   }
 }

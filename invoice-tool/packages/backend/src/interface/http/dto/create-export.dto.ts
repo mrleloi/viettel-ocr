@@ -6,9 +6,9 @@ import { IsEnum, IsOptional, IsString } from 'class-validator';
  */
 export class CreateExportDto {
   /** Export format */
-  @ApiProperty({ enum: ['csv', 'json'], description: 'Export file format' })
-  @IsEnum(['csv', 'json'])
-  format!: 'csv' | 'json';
+  @ApiProperty({ enum: ['csv', 'json', 'xlsx'], description: 'Export file format' })
+  @IsEnum(['csv', 'json', 'xlsx'])
+  format!: 'csv' | 'json' | 'xlsx';
 
   /** Optional batch ID filter */
   @ApiPropertyOptional({ description: 'Filter by batch ID' })

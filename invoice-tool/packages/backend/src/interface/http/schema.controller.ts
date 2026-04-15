@@ -83,7 +83,7 @@ export class SchemaController {
       fieldDefinitions: dto.fieldDefinitions,
     });
     return {
-      schemaId: result.schemaId,
+      id: result.schemaId,
       name: result.name,
       status: result.status,
       rulesCreated: result.rulesCreated,
@@ -92,14 +92,14 @@ export class SchemaController {
   }
 
   /**
-   * List all active schemas.
-   * @returns Array of active schemas
+   * List all schemas (active + draft).
+   * @returns Array of non-archived schemas
    */
   @Get()
-  @ApiOperation({ summary: 'List active schemas' })
+  @ApiOperation({ summary: 'List all schemas' })
   @ApiResponse({ status: 200, type: [SchemaResponseDto] })
   async listSchemas(): Promise<SchemaResponseDto[]> {
-    const schemas = await this.schemaRepo.findActive();
+    const schemas = await this.schemaRepo.findAll();
     return schemas.map(s => ({
       id: s.id,
       name: s.name,
@@ -107,7 +107,9 @@ export class SchemaController {
       nccTaxId: s.nccTaxId,
       status: s.status,
       description: s.description,
+      version: s.version ?? 1,
       createdAt: s.createdAt.toISOString(),
+      updatedAt: (s.updatedAt ?? s.createdAt).toISOString(),
     }));
   }
 
@@ -133,7 +135,9 @@ export class SchemaController {
       nccTaxId: schema.nccTaxId,
       status: schema.status,
       description: schema.description,
+      version: schema.version ?? 1,
       createdAt: schema.createdAt.toISOString(),
+      updatedAt: (schema.updatedAt ?? schema.createdAt).toISOString(),
     };
   }
 
@@ -151,8 +155,8 @@ export class SchemaController {
   async updateSchema(
     @Param('id') id: string,
     @Body() dto: UpdateSchemaDto,
-  ): Promise<{ schemaId: string; name: string; status: string }> {
-    const result = await this.updateSchemaUseCase.execute({
+  ): Promise<SchemaResponseDto> {
+    await this.updateSchemaUseCase.execute({
       schemaId: id,
       name: dto.name,
       description: dto.description,
@@ -160,10 +164,21 @@ export class SchemaController {
       promptTemplate: dto.promptTemplate,
       statusAction: dto.statusAction,
     });
+    // Re-fetch to return full SchemaResponseDto shape
+    const schema = await this.schemaRepo.findById(id);
+    if (!schema) {
+      throw new NotFoundException(`Schema not found after update: ${id}`);
+    }
     return {
-      schemaId: result.schemaId,
-      name: result.name,
-      status: result.status,
+      id: schema.id,
+      name: schema.name,
+      nccName: schema.nccName,
+      nccTaxId: schema.nccTaxId,
+      status: schema.status,
+      description: schema.description,
+      version: schema.version ?? 1,
+      createdAt: schema.createdAt.toISOString(),
+      updatedAt: (schema.updatedAt ?? schema.createdAt).toISOString(),
     };
   }
 

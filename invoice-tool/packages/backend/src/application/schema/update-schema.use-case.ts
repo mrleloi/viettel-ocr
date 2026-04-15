@@ -13,8 +13,8 @@ export interface UpdateSchemaInput {
   readonly nccName?: string;
   /** Optional new prompt template */
   readonly promptTemplate?: string;
-  /** Optional status transition: 'activate' or 'deactivate' */
-  readonly statusAction?: 'activate' | 'deactivate';
+  /** Optional status transition: 'activate', 'deactivate', or 'archive' */
+  readonly statusAction?: 'activate' | 'deactivate' | 'archive';
 }
 
 /** Output after schema update */
@@ -73,6 +73,8 @@ export class UpdateSchemaUseCase {
       schema.activate();
     } else if (input.statusAction === 'deactivate') {
       schema.deactivate();
+    } else if (input.statusAction === 'archive') {
+      schema.archive();
     }
 
     await this.schemaRepo.save(schema);

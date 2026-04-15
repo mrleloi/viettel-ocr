@@ -302,6 +302,14 @@ export class Invoice {
   }
 
   /**
+   * Assign a schema to this invoice (e.g., after auto-creating a schema).
+   * @param schemaId Schema ID to assign
+   */
+  assignSchema(schemaId: string): void {
+    this.props = { ...this.props, schemaId, updatedAt: new Date() };
+  }
+
+  /**
    * Mark invoice as errored.
    */
   markAsError(): void {

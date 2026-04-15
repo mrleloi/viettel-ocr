@@ -33,6 +33,7 @@ describe('PromptBuilder', () => {
         dataType: 'string',
         isRequired: true,
         extractionHint: 'Located in top-right corner, format: XXXXXXX',
+        outputKey: 'invoiceNumber',
       },
       {
         fieldName: 'invoice_date',
@@ -40,6 +41,7 @@ describe('PromptBuilder', () => {
         dataType: 'date',
         isRequired: true,
         extractionHint: null,
+        outputKey: null,
       },
       {
         fieldName: 'total',
@@ -47,6 +49,7 @@ describe('PromptBuilder', () => {
         dataType: 'integer',
         isRequired: true,
         extractionHint: 'Bottom of invoice, in VND',
+        outputKey: 'total',
       },
       {
         fieldName: 'po_number',
@@ -54,6 +57,7 @@ describe('PromptBuilder', () => {
         dataType: 'string',
         isRequired: false,
         extractionHint: 'May not be present on all invoices',
+        outputKey: null,
       },
     ];
   }

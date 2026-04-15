@@ -30,8 +30,8 @@ export class UpdateSchemaDto {
   promptTemplate?: string;
 
   /** Optional status action */
-  @ApiPropertyOptional({ enum: ['activate', 'deactivate'], description: 'Status transition action' })
+  @ApiPropertyOptional({ enum: ['activate', 'deactivate', 'archive'], description: 'Status transition action' })
   @IsOptional()
-  @IsEnum(['activate', 'deactivate'])
-  statusAction?: 'activate' | 'deactivate';
+  @IsEnum(['activate', 'deactivate', 'archive'])
+  statusAction?: 'activate' | 'deactivate' | 'archive';
 }

@@ -32,6 +32,7 @@ const createMockBatchRepo = (): jest.Mocked<IBatchRepository> => ({
 const createMockSchemaRepo = (): jest.Mocked<ISchemaRepository> => ({
   findById: jest.fn().mockResolvedValue(null),
   findActive: jest.fn().mockResolvedValue([]),
+  findAll: jest.fn().mockResolvedValue([]),
   findByNccTaxId: jest.fn().mockResolvedValue(null),
   save: jest.fn().mockResolvedValue(undefined),
 });
@@ -160,7 +161,7 @@ describe('ProcessInvoiceUseCase', () => {
 
       expect(result.invoiceId).toBe('inv-1');
       expect(result.finalStatus).not.toBe('error');
-      expect(result.stages).toHaveLength(6);
+      expect(result.stages).toHaveLength(7);
       expect(result.stages.filter(s => s.status !== 'skipped').every(s => s.status === 'completed')).toBe(true);
       expect(result.overallConfidence).toBeGreaterThanOrEqual(0);
       expect(result.overallConfidence).toBeLessThanOrEqual(1);

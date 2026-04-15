@@ -22,8 +22,14 @@ export class SchemaResponseDto {
   @ApiPropertyOptional({ description: 'Description' })
   description?: string | null;
 
+  @ApiProperty({ description: 'Schema version number' })
+  version!: number;
+
   @ApiProperty({ description: 'Creation timestamp (ISO 8601)' })
   createdAt!: string;
+
+  @ApiProperty({ description: 'Last updated timestamp (ISO 8601)' })
+  updatedAt!: string;
 }
 
 /**
@@ -31,7 +37,7 @@ export class SchemaResponseDto {
  */
 export class CreateSchemaResponseDto {
   @ApiProperty({ description: 'Created schema ID' })
-  schemaId!: string;
+  id!: string;
 
   @ApiProperty({ description: 'Schema name' })
   name!: string;

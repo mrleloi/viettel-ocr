@@ -65,7 +65,7 @@ export class EnvConfigService {
 
   /** @returns Server port */
   get port(): number {
-    return parseInt(this.get('PORT', '3000'), 10);
+    return parseInt(this.get('PORT', '8889'), 10);
   }
 
   /** @returns Data directory path */

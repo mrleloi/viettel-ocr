@@ -6,7 +6,7 @@ const mockFetch = jest.fn();
 
 function createMockConfigService(overrides: Partial<{ viettelProductApiUrl: string }> = {}) {
   return {
-    viettelProductApiUrl: overrides.viettelProductApiUrl ?? 'http://localhost:3002',
+    viettelProductApiUrl: overrides.viettelProductApiUrl ?? 'http://localhost:8887',
   };
 }
 

@@ -36,6 +36,7 @@ import {
   InvoiceResponseDto,
   InvoiceActionResponseDto,
   InvoiceEditResponseDto,
+  ValidationIssueDto,
 } from './dto/invoice-response.dto';
 import { ProcessingTraceResponseDto } from './dto/processing-trace-response.dto';
 
@@ -103,7 +104,9 @@ export class InvoiceController {
     if (!invoice) {
       throw new NotFoundException(`Invoice not found: ${id}`);
     }
-    return this.toResponseDto(invoice);
+    // Load processing traces for confidence details and AI prompt
+    const traces = await this.traceRepo.findByInvoiceId(id);
+    return this.toResponseDto(invoice, traces);
   }
 
   /**
@@ -268,18 +271,38 @@ export class InvoiceController {
   /**
    * Map an invoice entity to a response DTO with all fields.
    * @param inv - Invoice entity
+   * @param traces - Optional processing traces for enriching response
    * @returns Response DTO
    */
-  private toResponseDto(inv: Invoice): InvoiceResponseDto {
+  private toResponseDto(inv: Invoice, traces?: { stage: string; inputData: string | null; outputData: string | null }[]): InvoiceResponseDto {
     // Parse JSON fields safely
     let fieldConfidences: Record<string, number> | null = null;
     if (inv.fieldConfidences) {
       try { fieldConfidences = JSON.parse(inv.fieldConfidences); } catch { /* ignore */ }
     }
 
-    let validationErrors: { errors: string[]; warnings: string[] } | null = null;
+    let validationErrors: { errors: ValidationIssueDto[]; warnings: ValidationIssueDto[] } | null = null;
     if (inv.validationErrors) {
       try { validationErrors = JSON.parse(inv.validationErrors); } catch { /* ignore */ }
+    }
+
+    // Extract confidence details from score trace (get LAST/most recent trace)
+    let confidenceDetails: InvoiceResponseDto['confidenceDetails'] = null;
+    let aiPrompt: string | null = null;
+    if (traces && traces.length > 0) {
+      // Reverse to get most recent first
+      const reversedTraces = [...traces].reverse();
+      const scoreTrace = reversedTraces.find(t => t.stage === 'score');
+      if (scoreTrace?.outputData) {
+        try { confidenceDetails = JSON.parse(scoreTrace.outputData); } catch { /* ignore */ }
+      }
+      const extractTrace = reversedTraces.find(t => t.stage === 'extract');
+      if (extractTrace?.inputData) {
+        try {
+          const parsed = JSON.parse(extractTrace.inputData);
+          aiPrompt = parsed.prompt ?? null;
+        } catch { /* ignore */ }
+      }
     }
 
     return {
@@ -330,6 +353,8 @@ export class InvoiceController {
       reviewedAt: inv.reviewedAt?.toISOString() ?? null,
       reviewedBy: inv.reviewedBy,
       updatedAt: inv.updatedAt.toISOString(),
+      confidenceDetails,
+      aiPrompt,
     };
   }
 }

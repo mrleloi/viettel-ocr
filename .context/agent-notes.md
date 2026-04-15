@@ -253,6 +253,65 @@
 - **CSS organization**: ~1036 lines for 3 pages — keep page-specific CSS sections clearly separated with comment headers
 
 
+## Excel Export Improvement (ad-hoc, 2026-04-15)
+
+**User request (quote)**: "sửa lại tính năng xuất ra file excel, cải thiện format và cải thiện khả năng xuất nhiều kết quả trích xuất ra một lần vào luôn trong một sheet excel"
+
+**Decisions**
+- Chose `exceljs` over `xlsx` (SheetJS) — better styling API, Node-native, no licensing concerns.
+- Two-sheet workbook (not single sheet): "Hóa đơn" (one row/invoice) + "Chi tiết hàng hóa" (one row/line item, keyed by invoiceId + invoiceNumber). Keeps header data scannable while preserving full line-item detail in one file.
+- Made `xlsx` the DEFAULT format in ExportForm (was `csv`) — user explicitly asked to improve Excel.
+- CSV kept but improved: `\uFEFF` BOM + CRLF line endings so Excel opens Vietnamese correctly.
+
+**Key code locations**
+- `packages/backend/src/application/export/create-export.use-case.ts` — new `serializeToXlsx`, `buildInvoiceSheet`, `buildLineItemSheet`, `styleHeaderRow`. `ExportFormat = 'csv' | 'json' | 'xlsx'`.
+- `packages/backend/src/interface/http/dto/create-export.dto.ts` — `@IsEnum(['csv','json','xlsx'])`.
+- `packages/backend/src/interface/http/export.controller.ts` — download loop tries `xlsx` first, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
+- `packages/frontend/src/components/export/ExportForm.tsx` — xlsx card first, default state `'xlsx'`.
+- `packages/frontend/src/lib/constants.ts` — `VI.export.xlsx = 'Excel'`.
+
+**Styling conventions used**
+- Header row: bold white on `FF1F4E78` (dark blue), centered, height 22, frozen (`ySplit: 1`), autoFilter enabled.
+- Currency format: `#,##0 "₫"`. Percent: `0.00"%"`. Date: `yyyy-mm-dd` (stored as JS `Date` object, not string).
+- Invoice date serialization: `inv.invoiceDate ? new Date(inv.invoiceDate) : null` — Excel applies date cell format.
+
+**Tests**
+- 541/541 passing. Added 2: `should export approved invoices as XLSX workbook` (verifies ZIP magic bytes `PK\x03\x04`), `should download an XLSX export file with spreadsheet MIME type`.
+- Updated existing `should throw for invalid format` test (was using `'xlsx' as 'csv'`; now uses `'pdf' as 'csv'`).
+- Controller download test for CSV needed `mockImplementation((path) => path.endsWith('.csv') ? resolve : reject)` pattern because xlsx is now first in try-loop.
+
+**Gotchas learned**
+- `workbook.xlsx.writeBuffer()` returns `ArrayBuffer`-like — wrap in `Buffer.from(arrayBuffer as ArrayBuffer)` for IFileStorage.
+- Header enum change in DTO is a semver-visible contract change (OpenAPI spec will show new `xlsx` value).
+
+## Excel Export — Combined Sheet + Windows Launcher (2026-04-15, follow-up)
+
+**User requests (quotes)**
+1. "thêm một sheet tổng hợp vào đầu nữa, chứa đầy đủ cả thông tin hóa đơn và chi tiết hàng hóa trong một sheet luôn"
+2. "cho một file script chạy được trên windows ở \"C:\\htdocs\\viettel-ocr\", để bấm vào đấy là bật terminal start app lên để dùng, cho non-tech user dùng"
+
+**Decisions — combined sheet**
+- Added `buildCombinedSheet` as sheet #1. Workbook order now: **Tổng hợp → Hóa đơn → Chi tiết hàng hóa**.
+- Flat denormalized layout: invoice fields repeated on every line-item row (best for pivot tables / Excel filter). Invoice with 0 line items → 1 row with blank item columns.
+- 23 columns total. Naming disambiguated with suffixes to avoid collision: `Tiền hàng (HĐ)` vs `Thành tiền` (line), `Thuế suất (HĐ)` vs `Thuế suất (dòng)`, etc.
+- Freeze first 2 columns (`xSplit: 2`) + header row so ID + số hóa đơn luôn nhìn thấy khi scroll ngang. Other sheets only freeze header row.
+- Reused same numFmt constants (CURRENCY/PERCENT/DATE/NUMBER) + `styleHeaderRow` helper — no style drift between sheets.
+- Existing xlsx test still passes (only asserts ZIP signature — sheet count not asserted).
+
+**Windows launcher — `C:\htdocs\viettel-ocr\Start-InvoiceTool.bat`**
+- Placed at repo root (OUTSIDE `invoice-tool/`) per user spec: double-click target location.
+- Steps: `chcp 65001` → check Node → auto-run `npm run setup` if `config.env` missing → auto-run `npm install` if `node_modules` missing → schedule `start http://localhost:3001` after 20s via backgrounded `timeout /t 20 /nobreak` → blocking `npm start`.
+- Used `cd /d "%~dp0invoice-tool"` so double-click works regardless of current dir.
+- ASCII-only error text + diacritic-free filename (`Start-InvoiceTool.bat`) — avoids cmd.exe encoding issues on Vietnamese Windows even with chcp 65001 (batch files are parsed before chcp takes effect for the filename).
+- UI text in file body uses no Vietnamese diacritics either (some cmd fonts still garble UTF-8 despite chcp) — trades prettiness for reliability on non-tech machines.
+- Background browser-open trick: `start "" /b cmd /c "timeout /t 20 /nobreak >nul && start http://localhost:3001"` — runs detached so blocking `npm start` after it doesn't prevent browser launch.
+
+**Gotchas for future Windows scripts**
+- `chcp 65001` doesn't retroactively fix already-printed bytes in the same .bat — safest is ASCII-only in .bat files.
+- `npm start` in this repo must run from `invoice-tool/` (workspace root), not repo root — there's no package.json at `C:\htdocs\viettel-ocr\`.
+- `config.env` is in `invoice-tool/`, not repo root. `start.js:validateConfig()` exits 1 if missing.
+- Frontend (Next.js dev) takes 10–20s cold compile — 20s browser delay is a reasonable floor. Going below 10s opens browser to a spinning loader.
+
 ## Key Files
 
 | Resource | Path |

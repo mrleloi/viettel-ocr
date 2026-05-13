@@ -18,6 +18,8 @@ export interface ConfidenceInput {
   readonly hintMatchesFingerprint: boolean;
   /** Whether a frontend hint was provided at all */
   readonly hasHint: boolean;
+  /** LLM classification confidence (0.0-1.0), used when classificationMethod is 'llm' */
+  readonly classificationConfidence?: number;
 }
 
 /**
@@ -77,8 +79,16 @@ export class ConfidenceCalculator {
     // --- Component 1: Hint Score ---
     const hintScore = this.calculateHintScore(input);
 
-    // --- Component 2: Fingerprint Score ---
-    const fingerprintScore = input.fingerprintScore;
+    // --- Component 2: Fingerprint / Classification Score ---
+    // When fingerprint matched, use its score directly.
+    // When LLM classified successfully (no fingerprint, no hint), use the LLM
+    // classification confidence as a proxy so that correct LLM classification
+    // still contributes to the overall score.
+    const fingerprintScore = input.fingerprintScore > 0
+      ? input.fingerprintScore
+      : (input.classificationMethod === 'llm' && !input.hasHint && (input.classificationConfidence ?? 0) > 0)
+        ? (input.classificationConfidence ?? 0) * 0.8 // LLM classification scaled to 80% of fingerprint weight
+        : input.fingerprintScore;
 
     // --- Component 3: Extraction Quality ---
     const extractionQuality = this.calculateExtractionQuality(input.fieldConfidences);
@@ -90,12 +100,24 @@ export class ConfidenceCalculator {
     const mappingScore = input.mappingCompleteness;
 
     // --- Weighted sum ---
+    // When no hint was provided, redistribute the hint weight proportionally
+    // to other components so the score isn't capped at ~60%.
+    const effectiveWeights = input.hasHint
+      ? { ...WEIGHTS }
+      : {
+          hint: 0,
+          fingerprint: WEIGHTS.fingerprint / (1 - WEIGHTS.hint),
+          extraction: WEIGHTS.extraction / (1 - WEIGHTS.hint),
+          validation: WEIGHTS.validation / (1 - WEIGHTS.hint),
+          mapping: WEIGHTS.mapping / (1 - WEIGHTS.hint),
+        };
+
     let score =
-      hintScore * WEIGHTS.hint +
-      fingerprintScore * WEIGHTS.fingerprint +
-      extractionQuality * WEIGHTS.extraction +
-      validationScore * WEIGHTS.validation +
-      mappingScore * WEIGHTS.mapping;
+      hintScore * effectiveWeights.hint +
+      fingerprintScore * effectiveWeights.fingerprint +
+      extractionQuality * effectiveWeights.extraction +
+      validationScore * effectiveWeights.validation +
+      mappingScore * effectiveWeights.mapping;
 
     // --- Penalties ---
 

@@ -121,13 +121,20 @@ export class InvoiceRepositoryImpl implements IInvoiceRepository {
     schemaId?: string;
     dateFrom?: string;
     dateTo?: string;
+    processedFrom?: string;
+    processedTo?: string;
   }): Promise<Invoice[]> {
     let query = this.db.select().from(invoices);
     const conditions = [];
     if (filters.status) conditions.push(eq(invoices.status, filters.status));
     if (filters.schemaId) conditions.push(eq(invoices.schemaId, filters.schemaId));
-    if (filters.dateFrom) conditions.push(gte(invoices.createdAt, filters.dateFrom));
-    if (filters.dateTo) conditions.push(lte(invoices.createdAt, filters.dateTo));
+    // Filter by the invoice's printed date (invoiceDate, YYYY-MM-DD).
+    if (filters.dateFrom) conditions.push(gte(invoices.invoiceDate, filters.dateFrom));
+    if (filters.dateTo) conditions.push(lte(invoices.invoiceDate, filters.dateTo));
+    // Filter by the system's processing timestamp (processedAt, ISO 8601 UTC).
+    // Day-bound the YYYY-MM-DD inputs so the range is inclusive of the whole day.
+    if (filters.processedFrom) conditions.push(gte(invoices.processedAt, `${filters.processedFrom}T00:00:00.000Z`));
+    if (filters.processedTo) conditions.push(lte(invoices.processedAt, `${filters.processedTo}T23:59:59.999Z`));
     if (conditions.length > 0) {
       query = query.where(and(...conditions)) as typeof query;
     }
@@ -166,7 +173,19 @@ export class InvoiceRepositoryImpl implements IInvoiceRepository {
       vatAmount: row.vatAmount ?? null,
       total: row.total ?? null,
       poNumber: row.poNumber ?? null,
-      lineItems: row.lineItems ? JSON.parse(row.lineItems) as LineItemProps[] : [],
+      lineItems: row.lineItems
+        ? (JSON.parse(row.lineItems) as Array<Partial<LineItemProps>>).map(li => ({
+            productCode: li.productCode ?? null,
+            name: li.name ?? '',
+            unit: li.unit ?? null,
+            quantity: li.quantity ?? 0,
+            unitPrice: li.unitPrice ?? 0,
+            amount: li.amount ?? 0,
+            vatRate: li.vatRate ?? null,
+            vatAmount: li.vatAmount ?? null,
+            totalWithVat: li.totalWithVat ?? null,
+          }))
+        : [],
       overallConfidence: row.overallConfidence ?? null,
       ocrRawText: row.ocrRawText ?? null,
       extractedRawJson: row.extractedRawJson ?? null,

@@ -4,6 +4,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * Response DTO for a single line item in an invoice.
  */
 export class LineItemResponseDto {
+  @ApiPropertyOptional({ description: 'Product/part code (Mã sản phẩm)' })
+  productCode?: string | null;
+
   @ApiProperty({ description: 'Item name' })
   name!: string;
 

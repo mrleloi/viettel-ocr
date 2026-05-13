@@ -48,13 +48,27 @@ describe('SqliteJobQueue', () => {
       expect(count).toBe(1);
     });
 
-    it('should allow multiple jobs for the same invoice (reprocessing)', async () => {
+    it('should be idempotent when active job already exists for the same invoice', async () => {
       seedInvoice('inv-1');
       const id1 = await sut.enqueue('inv-1');
       const id2 = await sut.enqueue('inv-1');
 
-      expect(id1).not.toBe(id2);
-      expect(await sut.countPending()).toBe(2);
+      // Second enqueue returns the existing pending job's ID, not a new one
+      expect(id1).toBe(id2);
+      expect(await sut.countPending()).toBe(1);
+    });
+
+    it('should create a new job after the previous one has completed (reprocessing)', async () => {
+      seedInvoice('inv-1');
+      const id1 = await sut.enqueue('inv-1');
+      // Take it to move to 'processing', then complete it
+      await sut.takePending(1);
+      await sut.markCompleted(id1);
+
+      // Now a new enqueue creates a fresh job
+      const id2 = await sut.enqueue('inv-1');
+      expect(id2).not.toBe(id1);
+      expect(await sut.countPending()).toBe(1);
     });
   });
 

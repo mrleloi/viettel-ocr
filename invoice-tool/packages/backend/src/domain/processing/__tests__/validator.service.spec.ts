@@ -60,6 +60,34 @@ describe('ValidatorService', () => {
     expect(result.errors).toHaveLength(0);
   });
 
+  // --- 2b. Bug repro: subtotal mismatches sum of line items → error ---
+  // Real-world OCR bug: Gemini grabbed the VAT-amount column as subtotal.
+  // Header said subtotal=-119,398,400 but line_items summed to -1,492,480,000.
+  // This MUST surface as an error, not a silent warning.
+  it('should error when sum of line items does not match subtotal', () => {
+    const data = makeValidData({
+      subtotal: -119398400, // wrong: actually the VAT amount
+      vatRate: 8,
+      vatAmount: -119398400, // same value duplicated — smoking gun
+      total: -1611878400,
+      lineItems: [
+        { name: 'Item A', quantity: 1, unitPrice: -1500000, amount: -1500000 },
+        { name: 'Item B', quantity: 1, unitPrice: -172500000, amount: -172500000 },
+        { name: 'Item C', quantity: 1, unitPrice: -490500000, amount: -490500000 },
+        { name: 'Item D', quantity: 1, unitPrice: -826480000, amount: -826480000 },
+        { name: 'Item E', quantity: 1, unitPrice: -1500000, amount: -1500000 },
+      ],
+    });
+    const result = service.validate(data);
+
+    const mismatchErrors = result.errors.filter(
+      e => e.rule === 'line_items_sum_matches_subtotal',
+    );
+    expect(mismatchErrors).toHaveLength(1);
+    expect(mismatchErrors[0].severity).toBe('error');
+    expect(result.valid).toBe(false);
+  });
+
   // --- 3. Edge: VAT amount off by 1 VND → tolerance ---
   it('should pass when VAT amount is off by 1 VND (tolerance)', () => {
     const data = makeValidData({

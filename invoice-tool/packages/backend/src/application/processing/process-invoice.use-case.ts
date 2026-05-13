@@ -57,7 +57,7 @@ export interface ProcessInvoiceOutput {
 }
 
 /** Default confidence thresholds for routing */
-const DEFAULT_AUTO_APPROVE_THRESHOLD = 0.85;
+const DEFAULT_AUTO_APPROVE_THRESHOLD = 0.90;
 
 /**
  * Fallback extraction prompt for invoices that don't match any known schema.
@@ -88,6 +88,7 @@ const NO_SCHEMA_FALLBACK_PROMPT = `Trích xuất dữ liệu từ hóa đơn Vi�
   "po_number": string | null,
   "line_items": [
     {
+      "product_code": string | null,
       "name": string,
       "unit": string | null,
       "quantity": number,
@@ -104,7 +105,20 @@ const NO_SCHEMA_FALLBACK_PROMPT = `Trích xuất dữ liệu từ hóa đơn Vi�
 QUAN TRỌNG:
 - Tất cả số tiền là số nguyên VND (không có dấu phân cách hàng nghìn, không có thập phân).
   Ví dụ: "881.900" trên hóa đơn = 881900 (KHÔNG phải 881.9).
+- Cho phép số âm với hóa đơn điều chỉnh giảm (credit note).
 - vat_rate là phần trăm số nguyên (8 nghĩa là 8%, không phải 0.08).
+
+PHÂN BIỆT CỘT (rất quan trọng — đừng nhầm):
+- "subtotal"   = cột "Thành tiền chưa thuế GTGT" / "Amount exclusive VAT" / "Cộng tiền hàng" (chưa VAT).
+- "vat_amount" = cột "Tiền thuế GTGT" / "VAT Amount" (chỉ là tiền thuế, KHÔNG phải tiền hàng).
+- "total"      = cột "Thành tiền" / "Tổng cộng tiền thanh toán" (đã có VAT).
+- Kiểm tra: subtotal + vat_amount === total. Nếu không khớp, bạn đã đọc nhầm cột — đọc lại.
+- Kiểm tra: subtotal === tổng các line_items.amount. Nếu không khớp, đọc lại line items.
+
+LINE ITEMS:
+- "product_code" lấy từ cột "Mã sản phẩm" / "Part no." (ví dụ "MXP63ZP/A"). Null nếu không có cột này.
+- "amount" = quantity × unit_price (chưa VAT). Không lấy cột có VAT.
+
 - Dùng ĐÚNG tên trường ở trên (snake_case). Không dùng "items", "total_amount", "total_tax_amount".
 - Nếu không tìm thấy trường nào, trả về null kèm field_confidences[trường] = 0.
 - Trả về CHÍNH XÁC JSON, không kèm văn bản giải thích.`;
@@ -168,7 +182,7 @@ export class ProcessInvoiceUseCase {
     // Load batch for hint info
     const batch = await this.batchRepo.findById(invoice.batchId);
 
-    let classificationMethod: ClassificationMethod = 'fingerprint';
+    let classificationMethod: ClassificationMethod = 'llm';
     let classificationConfidence = 0;
     let matchedSchemaId: string | null = null;
     let fingerprintScore = 0;
@@ -205,8 +219,11 @@ export class ProcessInvoiceUseCase {
           priority: r.priority,
         }));
 
+        // Pre-extraction fingerprint: no OCR text available yet, so this pass
+        // only works for rules that don't need text (none currently).
+        // Post-extraction fingerprint re-run (after stage 2) handles text-based rules.
         const fpResult = this.fingerprintService.classify(
-          { ocrText: pdfBase64 }, // Simplified: in real impl, would do OCR first
+          { ocrText: '' },
           ruleData,
         );
 
@@ -222,25 +239,31 @@ export class ProcessInvoiceUseCase {
       if (!matchedSchemaId) {
         const activeSchemas = await this.schemaRepo.findActive();
         if (activeSchemas.length > 0) {
-          ocrResult = await this.ocrService.extractAndClassify(
-            pdfBase64,
-            activeSchemas.map(s => ({
-              name: s.name,
-              description: s.description ?? '',
-              nccTaxId: s.nccTaxId,
-            })),
-          );
-
-          if (ocrResult.classification) {
-            // Find matching schema by name
-            const matched = activeSchemas.find(
-              s => s.name === ocrResult!.classification!.schemaName,
+          try {
+            ocrResult = await this.ocrService.extractAndClassify(
+              pdfBase64,
+              activeSchemas.map(s => ({
+                name: s.name,
+                description: s.description ?? '',
+                nccTaxId: s.nccTaxId,
+              })),
             );
-            if (matched) {
-              matchedSchemaId = matched.id;
-              classificationMethod = 'llm' as ClassificationMethod;
-              classificationConfidence = ocrResult.classification.confidence;
+
+            if (ocrResult.classification) {
+              // Find matching schema by name
+              const matched = activeSchemas.find(
+                s => s.name === ocrResult!.classification!.schemaName,
+              );
+              if (matched) {
+                matchedSchemaId = matched.id;
+                classificationMethod = 'llm' as ClassificationMethod;
+                classificationConfidence = ocrResult.classification.confidence;
+              }
             }
+          } catch (llmErr) {
+            // LLM classify failed (e.g. Gemini 503) — non-fatal, proceed to extract with fallback prompt
+            const llmMsg = llmErr instanceof Error ? llmErr.message : String(llmErr);
+            this.logger.warn(`[classify] LLM classification failed, will use fallback extraction: ${llmMsg}`);
           }
         }
       }
@@ -313,11 +336,56 @@ export class ProcessInvoiceUseCase {
       invoice.setExtractedData(extracted);
       await this.invoiceRepo.save(invoice);
 
+      // Re-run fingerprint with actual extracted data if it was zero before
+      if (fingerprintScore === 0) {
+        const allRules = await this.ruleRepo.findAllActive();
+        const activeSchemaIds = new Set(
+          (await this.schemaRepo.findActive()).map(s => s.id),
+        );
+        const rules = allRules.filter(r => activeSchemaIds.has(r.schemaId));
+        if (rules.length > 0) {
+          const ruleData: FingerprintRuleData[] = rules.map(r => ({
+            id: r.id,
+            schemaId: r.schemaId,
+            ruleType: this.mapRuleType(r.ruleType),
+            ruleField: 'full_text' as const,
+            ruleValue: r.pattern,
+            priority: r.priority,
+          }));
+
+          const fpResult = this.fingerprintService.classify(
+            {
+              ocrText: ocrResult.rawText ?? '',
+              sellerTaxId: invoice.sellerTaxId ?? undefined,
+              invoiceSymbol: invoice.invoiceSymbol ?? undefined,
+            },
+            ruleData,
+          );
+
+          if (fpResult.matched && fpResult.schemaId) {
+            fingerprintScore = fpResult.score;
+            classificationMethod = 'fingerprint';
+            classificationConfidence = fpResult.score;
+
+            // If fingerprint discovered or confirmed the schema, update it
+            if (!matchedSchemaId || fpResult.schemaId === matchedSchemaId) {
+              matchedSchemaId = fpResult.schemaId;
+              // Persist the schema assignment back to the invoice
+              invoice.assignSchema(matchedSchemaId);
+              await this.invoiceRepo.save(invoice);
+            }
+            this.logger.log(
+              `[extract] Post-extraction fingerprint matched schema ${fpResult.schemaId} with score ${fpResult.score}`,
+            );
+          }
+        }
+      }
+
       const extractDuration = Date.now() - stageStart;
       stages.push({ stage: 'extract', status: 'completed', durationMs: extractDuration });
       await this.persistTrace(invoice.id, 'extract', 'completed', extractDuration, undefined,
         JSON.stringify({ prompt: this.lastExtractPrompt?.slice(0, 2000) }),
-        JSON.stringify({ fieldsExtracted: Object.keys(ocrResult?.extractedData ?? {}), hasLineItems: Array.isArray(ocrResult?.extractedData?.['line_items']) }),
+        JSON.stringify({ fieldsExtracted: Object.keys(ocrResult?.extractedData ?? {}), hasLineItems: Array.isArray(ocrResult?.extractedData?.['line_items']), postExtractFingerprintScore: fingerprintScore }),
       );
     } catch (error) {
       const msg = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
@@ -392,9 +460,21 @@ export class ProcessInvoiceUseCase {
             }
           }
 
-          mappingCompleteness = lineItems.length > 0
-            ? mappedCount / lineItems.length
-            : 0;
+          // Don't penalize mapping when the catalog isn't configured for this vendor:
+          // - No products in catalog at all, OR
+          // - No existing confirmed mappings for this schema AND no fuzzy matches found
+          if (mappedCount === 0) {
+            const existingSchemaMappings = await this.mappingRepo.findBySchemaId(matchedSchemaId);
+            const hasConfirmedMappings = existingSchemaMappings.some(m => m.status === 'active');
+            if (!hasConfirmedMappings) {
+              // No mapping configured for this vendor yet — don't penalize
+              mappingCompleteness = 1.0;
+            } else {
+              mappingCompleteness = 0;
+            }
+          } else {
+            mappingCompleteness = mappedCount / lineItems.length;
+          }
         } else {
           // No line items to map — consider fully mapped
           mappingCompleteness = 1.0;
@@ -444,12 +524,11 @@ export class ProcessInvoiceUseCase {
       const validationResult = this.validator.validate(validationData);
       validationPassRate = validationResult.passRate;
 
-      if (!validationResult.valid) {
-        invoice.setValidationErrors(JSON.stringify({
-          errors: validationResult.errors,
-          warnings: validationResult.warnings,
-        }));
-      }
+      // Always store validation results so the frontend can display them
+      invoice.setValidationErrors(JSON.stringify({
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
+      }));
 
       invoice.markAsValidated();
       await this.invoiceRepo.save(invoice);
@@ -491,6 +570,7 @@ export class ProcessInvoiceUseCase {
         mappingCompleteness,
         hintMatchesFingerprint: batch?.hintSchemaId === matchedSchemaId && !!batch?.hintSchemaId,
         hasHint: !!batch?.hintSchemaId,
+        classificationConfidence,
       };
 
       const confidenceResult = this.confidenceCalculator.calculate(confidenceInput);
@@ -623,12 +703,33 @@ export class ProcessInvoiceUseCase {
     try {
       const stageStart = Date.now();
 
-      if (overallConfidence >= DEFAULT_AUTO_APPROVE_THRESHOLD) {
-        // Auto-approve: high confidence
-        invoice.markAsMapped(); // Skipping mapping stage for now
+      // Block auto-approve if validation produced any errors — high confidence on
+      // garbage extraction (e.g. subtotal column-swap) must still go to human review.
+      let hasValidationErrors = false;
+      if (invoice.validationErrors) {
+        try {
+          const parsed = JSON.parse(invoice.validationErrors) as { errors?: unknown[] };
+          hasValidationErrors = Array.isArray(parsed.errors) && parsed.errors.length > 0;
+        } catch {
+          // malformed JSON — treat as unsafe, route to review
+          hasValidationErrors = true;
+        }
+      }
+
+      if (overallConfidence >= DEFAULT_AUTO_APPROVE_THRESHOLD && !hasValidationErrors) {
+        // Auto-approve: high confidence AND clean validation — skip review queue
+        invoice.autoApprove();
+        this.logger.log(
+          `[route] Auto-approved invoice ${invoice.id} (confidence ${(overallConfidence * 100).toFixed(1)}%)`,
+        );
       } else {
-        // Needs review
+        // Needs review (low confidence OR validation errors)
         invoice.markAsNeedsReview();
+        if (hasValidationErrors && overallConfidence >= DEFAULT_AUTO_APPROVE_THRESHOLD) {
+          this.logger.log(
+            `[route] Sent invoice ${invoice.id} to review (confidence ${(overallConfidence * 100).toFixed(1)}% but validation errors present)`,
+          );
+        }
       }
       await this.invoiceRepo.save(invoice);
 
@@ -724,16 +825,29 @@ export class ProcessInvoiceUseCase {
     confidence: number,
   ): ExtractedDataProps {
     const data = ocrResult.extractedData;
+    // Some schema prompts cause Gemini to nest fields under a "fields" envelope
+    const fieldsEnvelope = (data['fields'] ?? data['data']) as Record<string, unknown> | undefined;
 
     /** Read a field value, accepting either `{value}` envelope or raw value, across alias keys. */
     const readRaw = (keys: readonly string[]): unknown => {
       for (const key of keys) {
+        // Check top-level first
         const direct = data[key];
         if (direct !== undefined && direct !== null) {
           if (typeof direct === 'object' && 'value' in (direct as Record<string, unknown>)) {
             return (direct as { value: unknown }).value;
           }
           return direct;
+        }
+        // Check inside "fields" / "data" envelope
+        if (fieldsEnvelope) {
+          const nested = fieldsEnvelope[key];
+          if (nested !== undefined && nested !== null) {
+            if (typeof nested === 'object' && 'value' in (nested as Record<string, unknown>)) {
+              return (nested as { value: unknown }).value;
+            }
+            return nested;
+          }
         }
       }
       return null;
@@ -750,24 +864,100 @@ export class ProcessInvoiceUseCase {
     };
 
     const lineItemsRaw = readRaw(['line_items', 'items', 'lineItems']);
+    // Invoice-level VAT rate (needed for per-item VAT fallback computation)
+    const invoiceVatRate = this.normalizeVatRate(getNumber(['vat_rate', 'tax_rate', 'vatRate']));
+
+    // Gemini may wrap each line-item field as { value, confidence }. Unwrap before reading.
+    const unwrap = (v: unknown): unknown => {
+      if (v != null && typeof v === 'object' && !Array.isArray(v) && 'value' in (v as Record<string, unknown>)) {
+        return (v as { value: unknown }).value;
+      }
+      return v;
+    };
+    const pick = (li: Record<string, unknown>, keys: readonly string[]): unknown => {
+      for (const k of keys) {
+        const raw = li[k];
+        if (raw !== undefined && raw !== null) return unwrap(raw);
+      }
+      return undefined;
+    };
+
     const lineItems = Array.isArray(lineItemsRaw)
-      ? (lineItemsRaw as Array<Record<string, unknown>>).map((li) => ({
-          name: li['name'] != null ? String(li['name']) : '',
-          unit: li['unit'] != null ? String(li['unit']) : null,
-          quantity: this.parseVietnameseNumber(li['quantity']) ?? 0,
-          unitPrice: this.parseVietnameseNumber(li['unit_price'] ?? li['unitPrice']) ?? 0,
-          amount: this.parseVietnameseNumber(
-            li['amount'] ?? li['line_total'] ?? li['lineTotal'],
-          ) ?? 0,
-          vatRate: this.parseVietnameseNumber(li['vat_rate'] ?? li['tax_rate'] ?? li['vatRate']),
-          vatAmount: this.parseVietnameseNumber(
-            li['vat_amount'] ?? li['tax_amount'] ?? li['vatAmount'],
-          ),
-          totalWithVat: this.parseVietnameseNumber(
-            li['total_with_vat'] ?? li['total_price'] ?? li['totalWithVat'],
-          ),
-        }))
+      ? (lineItemsRaw as Array<Record<string, unknown>>).map((li) => {
+          const rawProductCode = pick(li, ['product_code', 'productCode', 'part_no', 'partNo', 'part_number', 'sku', 'item_code', 'itemCode']);
+          const rawName = pick(li, ['name', 'item_name', 'item_description', 'description', 'product_name']);
+          const rawUnit = pick(li, ['unit', 'item_unit']);
+          const quantity = this.parseVietnameseNumber(pick(li, ['quantity', 'item_quantity'])) ?? 0;
+          const unitPrice = this.parseVietnameseNumber(pick(li, ['unit_price', 'unitPrice', 'item_unit_price'])) ?? 0;
+          const rawAmount = this.parseVietnameseNumber(
+            pick(li, ['amount', 'line_total', 'lineTotal', 'item_subtotal', 'item_amount']),
+          ) ?? 0;
+          const itemVatRate = this.normalizeVatRate(this.parseVietnameseNumber(pick(li, ['vat_rate', 'tax_rate', 'vatRate', 'item_vat_rate', 'item_tax_rate'])));
+          // Sanity-check: amount should equal quantity × unit_price (pre-VAT).
+          // If the AI read the with-VAT column by mistake, amount will be ~10% higher.
+          // Trust qty × unit_price when the discrepancy is > 1%.
+          const expectedAmount = quantity * unitPrice;
+          const amount = (Math.abs(expectedAmount) > 0 && Math.abs(rawAmount - expectedAmount) / Math.abs(expectedAmount) > 0.01)
+            ? expectedAmount
+            : rawAmount;
+          const itemVatAmount = this.parseVietnameseNumber(
+            pick(li, ['vat_amount', 'tax_amount', 'vatAmount', 'item_vat_amount', 'item_tax_amount']),
+          );
+          const itemTotalWithVat = this.parseVietnameseNumber(
+            pick(li, ['total_with_vat', 'total_price', 'totalWithVat', 'item_total', 'item_total_with_vat']),
+          );
+
+          // Compute missing per-item VAT from invoice-level VAT rate
+          const effectiveVatRate = itemVatRate ?? invoiceVatRate;
+          const effectiveVatAmount = itemVatAmount ?? (effectiveVatRate != null && amount !== 0
+            ? Math.round(amount * effectiveVatRate / 100)
+            : null);
+          const effectiveTotalWithVat = itemTotalWithVat ?? (effectiveVatAmount != null
+            ? amount + effectiveVatAmount
+            : null);
+
+          const productCodeStr = rawProductCode != null ? String(rawProductCode).trim() : '';
+          return {
+            productCode: productCodeStr !== '' ? productCodeStr : null,
+            name: rawName != null ? String(rawName) : '',
+            unit: rawUnit != null ? String(rawUnit) : null,
+            quantity,
+            unitPrice,
+            amount,
+            vatRate: effectiveVatRate,
+            vatAmount: effectiveVatAmount,
+            totalWithVat: effectiveTotalWithVat,
+          };
+        })
       : [];
+
+    let subtotal = getNumber(['subtotal', 'sub_total', 'pre_tax_total']);
+    const vatRate = this.normalizeVatRate(getNumber(['vat_rate', 'tax_rate', 'vatRate']));
+    let vatAmount = getNumber(['vat_amount', 'total_tax_amount', 'tax_amount', 'vatAmount']);
+    let total = getNumber(['total', 'total_amount', 'grand_total', 'totalAmount']);
+
+    // Self-heal header totals when line items are internally consistent but the
+    // header is inconsistent with them. Common cause: multi-page invoices where
+    // Gemini sums only the first page's line items into the header totals.
+    if (lineItems.length > 0) {
+      const allInternallyConsistent = lineItems.every((li) => {
+        const expected = li.quantity * li.unitPrice;
+        // Allow tiny FP/rounding drift (≤ 1 VND)
+        return Math.abs(li.amount - expected) <= 1;
+      });
+      if (allInternallyConsistent) {
+        const lineItemsSum = lineItems.reduce((s, li) => s + li.amount, 0);
+        const lineVatSum = lineItems.reduce((s, li) => s + (li.vatAmount ?? 0), 0);
+        const lineTotalSum = lineItems.reduce((s, li) => s + (li.totalWithVat ?? li.amount + (li.vatAmount ?? 0)), 0);
+        // Threshold: > 1 VND mismatch between header subtotal and line items sum
+        if (subtotal == null || Math.abs(subtotal - lineItemsSum) > 1) {
+          this.logger.warn(`Header subtotal (${subtotal}) differs from line items sum (${lineItemsSum}); overriding from line items.`);
+          subtotal = lineItemsSum;
+          if (lineVatSum !== 0) vatAmount = lineVatSum;
+          if (lineTotalSum !== 0) total = lineTotalSum;
+        }
+      }
+    }
 
     return {
       schemaId: schemaId,
@@ -781,18 +971,65 @@ export class ProcessInvoiceUseCase {
       sellerTaxId: getString(['seller_tax_id', 'sellerTaxId', 'seller_mst']),
       buyerName: getString(['buyer_name', 'buyerName']),
       buyerTaxId: getString(['buyer_tax_id', 'buyerTaxId', 'buyer_mst']),
-      subtotal: getNumber(['subtotal', 'sub_total', 'pre_tax_total']),
-      vatRate: getNumber(['vat_rate', 'tax_rate', 'vatRate']),
-      vatAmount: getNumber(['vat_amount', 'total_tax_amount', 'tax_amount', 'vatAmount']),
-      total: getNumber(['total', 'total_amount', 'grand_total', 'totalAmount']),
+      subtotal,
+      vatRate,
+      vatAmount,
+      total,
       poNumber: getString(['po_number', 'poNumber']),
       lineItems,
       ocrRawText: ocrResult.rawText,
       extractedRawJson: JSON.stringify(ocrResult.extractedData),
-      fieldConfidences: Object.keys(ocrResult.fieldConfidences).length > 0
-        ? JSON.stringify(ocrResult.fieldConfidences)
-        : null,
+      fieldConfidences: this.extractFieldConfidences(ocrResult, fieldsEnvelope),
     };
+  }
+
+  /**
+   * Extract field confidences from OCR result, handling both flat and envelope formats.
+   * @param ocrResult - OCR extraction result
+   * @param fieldsEnvelope - Optional "fields" envelope from AI response
+   * @returns JSON string of field confidences, or null
+   */
+  private extractFieldConfidences(
+    ocrResult: OcrExtractionResult,
+    fieldsEnvelope: Record<string, unknown> | undefined,
+  ): string | null {
+    // First try the standard location (flat field_confidences / confidence key)
+    if (Object.keys(ocrResult.fieldConfidences).length > 0) {
+      return JSON.stringify(ocrResult.fieldConfidences);
+    }
+
+    // Extract from envelope format: {"fields": {"invoice_number": {"value": ..., "confidence": 0.95}}}
+    if (fieldsEnvelope && typeof fieldsEnvelope === 'object') {
+      const confidences: Record<string, number> = {};
+      for (const [key, val] of Object.entries(fieldsEnvelope)) {
+        if (val && typeof val === 'object' && 'confidence' in (val as Record<string, unknown>)) {
+          const conf = (val as { confidence: unknown }).confidence;
+          if (typeof conf === 'number') {
+            confidences[key] = conf;
+          }
+        }
+      }
+      if (Object.keys(confidences).length > 0) {
+        return JSON.stringify(confidences);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Normalize VAT rate: AI may return 0.1 (decimal) instead of 10 (integer %).
+   * Vietnamese VAT rates are 0, 5, 8, or 10. If the value is between 0 and 1
+   * exclusive, multiply by 100 to convert to integer percentage.
+   * @param rate - Raw VAT rate
+   * @returns Normalized integer percentage, or null
+   */
+  private normalizeVatRate(rate: number | null): number | null {
+    if (rate === null) return null;
+    if (rate > 0 && rate < 1) {
+      return Math.round(rate * 100);
+    }
+    return rate;
   }
 
   /**

@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { DATABASE_TOKEN } from '../database/connection';
 import { processingJobs } from '../database/schema';
@@ -26,6 +26,19 @@ export class SqliteJobQueue implements IJobQueue {
    * @returns Created job ID
    */
   async enqueue(invoiceId: string): Promise<string> {
+    // Idempotent: if an active (pending/processing) job already exists for this
+    // invoice, return its ID instead of creating a duplicate. Prevents double
+    // processing when enqueue is called from both upload and crash-recovery paths.
+    const existing = this.db
+      .select()
+      .from(processingJobs)
+      .where(and(
+        eq(processingJobs.invoiceId, invoiceId),
+        inArray(processingJobs.status, ['pending', 'processing']),
+      ))
+      .get();
+    if (existing) return existing.id;
+
     const id = generateId();
     const now = new Date().toISOString();
 

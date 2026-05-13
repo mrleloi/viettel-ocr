@@ -27,6 +27,8 @@ export type InvoiceType = 'original' | 'adjustment' | 'replacement';
 
 /** Extracted line item from invoice */
 export interface LineItemProps {
+  /** Supplier-side product/part code (Mã sản phẩm / Part no.). Optional — not all invoices show it. */
+  readonly productCode: string | null;
   readonly name: string;
   readonly unit: string | null;
   readonly quantity: number;

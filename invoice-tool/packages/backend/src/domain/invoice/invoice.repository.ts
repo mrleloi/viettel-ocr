@@ -59,13 +59,16 @@ export interface IInvoiceRepository {
 
   /**
    * Find invoices matching a set of optional filters.
-   * @param filters Optional status, schemaId, dateFrom, dateTo filters
-   * @returns Matching invoices (all if no filters)
+   * - dateFrom/dateTo (YYYY-MM-DD): inclusive range on the invoice's printed date.
+   * - processedFrom/processedTo (YYYY-MM-DD): inclusive range on the system's processing date.
+   * Both ranges may be combined; they are ANDed.
    */
   findByFilters(filters: {
     status?: string;
     schemaId?: string;
     dateFrom?: string;
     dateTo?: string;
+    processedFrom?: string;
+    processedTo?: string;
   }): Promise<Invoice[]>;
 }

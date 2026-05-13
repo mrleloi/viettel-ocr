@@ -117,9 +117,17 @@ describe('Invoice', () => {
       expect(invoice.status).toBe('processing');
     });
 
-    it('should throw DomainError when not in pending status', () => {
+    it('should allow re-entering processing (crash-recovery retry)', () => {
       const invoice = createInvoice();
       invoice.markAsProcessing();
+      invoice.markAsProcessing();
+      expect(invoice.status).toBe('processing');
+    });
+
+    it('should throw DomainError when invoice is in a terminal status', () => {
+      const invoice = createInvoice();
+      invoice.markAsProcessing();
+      invoice.markAsError();
       expect(() => invoice.markAsProcessing()).toThrow(DomainError);
     });
   });
@@ -145,7 +153,7 @@ describe('Invoice', () => {
         vatAmount: 70552,
         total: 952452,
         poNumber: null,
-        lineItems: [{ name: 'Product A', unit: 'cái', quantity: 1, unitPrice: 881900, amount: 881900, vatRate: 8, vatAmount: 70552, totalWithVat: 952452 }],
+        lineItems: [{ productCode: null, name: 'Product A', unit: 'cái', quantity: 1, unitPrice: 881900, amount: 881900, vatRate: 8, vatAmount: 70552, totalWithVat: 952452 }],
         ocrRawText: 'raw text',
         extractedRawJson: '{"test": true}',
         fieldConfidences: '{"invoiceNumber": 0.99}',
@@ -240,7 +248,7 @@ describe('Invoice', () => {
         invoiceType: 'original', sellerName: 'Digiworld', sellerTaxId: '0302861742',
         buyerName: 'Viettel', buyerTaxId: '0100109106',
         subtotal: 881900, vatRate: 8, vatAmount: 70552, total: 952452, poNumber: 'PO-001',
-        lineItems: [{ name: 'Product A', unit: 'cái', quantity: 1, unitPrice: 881900, amount: 881900, vatRate: 8, vatAmount: 70552, totalWithVat: 952452 }],
+        lineItems: [{ productCode: null, name: 'Product A', unit: 'cái', quantity: 1, unitPrice: 881900, amount: 881900, vatRate: 8, vatAmount: 70552, totalWithVat: 952452 }],
         overallConfidence: 0.92, ocrRawText: 'raw text', extractedRawJson: '{"test":true}',
         validationErrors: '["err1"]', fieldConfidences: '{"invoiceNumber":0.99}',
         duplicateOf: status === 'duplicate' ? 'inv-original' : null,
@@ -315,9 +323,10 @@ describe('Invoice', () => {
       expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
     });
 
-    it('should throw DomainError when reprocessing from needs_review', () => {
+    it('should allow reprocessing from needs_review', () => {
       const invoice = createInvoiceInStatus('needs_review');
-      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+      invoice.resumeForReprocess();
+      expect(invoice.status).toBe('pending');
     });
 
     it('should throw DomainError when reprocessing from extracted', () => {
@@ -330,9 +339,10 @@ describe('Invoice', () => {
       expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
     });
 
-    it('should throw DomainError when reprocessing from mapped', () => {
+    it('should allow reprocessing from mapped', () => {
       const invoice = createInvoiceInStatus('mapped');
-      expect(() => invoice.resumeForReprocess()).toThrow(DomainError);
+      invoice.resumeForReprocess();
+      expect(invoice.status).toBe('pending');
     });
 
     it('should preserve id, batchId, filename, storagePath, fileHash, fileSizeBytes, pageCount, createdAt', () => {

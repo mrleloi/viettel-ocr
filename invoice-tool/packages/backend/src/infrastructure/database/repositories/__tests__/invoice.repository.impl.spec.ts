@@ -187,8 +187,8 @@ describe('InvoiceRepositoryImpl', () => {
         total: null,
         poNumber: null,
         lineItems: [
-          { name: 'Cáp quang', unit: 'Sợi', quantity: 10, unitPrice: 50000, amount: 500000, vatRate: 0.1, vatAmount: 50000, totalWithVat: 550000 },
-          { name: 'Switch', unit: 'Cái', quantity: 2, unitPrice: 2000000, amount: 4000000, vatRate: 0.1, vatAmount: 400000, totalWithVat: 4400000 },
+          { productCode: 'CQ-01', name: 'Cáp quang', unit: 'Sợi', quantity: 10, unitPrice: 50000, amount: 500000, vatRate: 0.1, vatAmount: 50000, totalWithVat: 550000 },
+          { productCode: null, name: 'Switch', unit: 'Cái', quantity: 2, unitPrice: 2000000, amount: 4000000, vatRate: 0.1, vatAmount: 400000, totalWithVat: 4400000 },
         ],
         ocrRawText: null,
         extractedRawJson: null,
@@ -291,6 +291,65 @@ describe('InvoiceRepositoryImpl', () => {
 
       const results = await repo.findByFilters({});
       expect(results).toHaveLength(3);
+    });
+
+    /**
+     * Helper: create an approved invoice with a specific invoiceDate (the printed
+     * date on the invoice, YYYY-MM-DD). dateFrom/dateTo filters must filter on
+     * THIS field, not on the upload timestamp.
+     */
+    async function createApprovedInvoiceOn(id: string, invoiceDate: string): Promise<void> {
+      const invoice = Invoice.create({
+        id,
+        batchId: 'batch-1',
+        originalFilename: `${id}.pdf`,
+        storagePath: `/${id}.pdf`,
+        fileHash: `hash-${id}`,
+        fileSizeBytes: 1024,
+        pageCount: 1,
+      });
+      invoice.markAsProcessing();
+      invoice.setExtractedData({
+        schemaId: 'schema-1',
+        classificationMethod: 'fingerprint',
+        classificationConfidence: 0.9,
+        invoiceNumber: `INV-${id}`,
+        invoiceSymbol: 'AB/26E',
+        invoiceDate,
+        invoiceType: 'original',
+        sellerName: 'Seller',
+        sellerTaxId: '0123456789',
+        buyerName: 'Buyer',
+        buyerTaxId: '9876543210',
+        subtotal: 1000000,
+        vatRate: 0.1,
+        vatAmount: 100000,
+        total: 1100000,
+        poNumber: null,
+        lineItems: [],
+        ocrRawText: 'text',
+        extractedRawJson: '{}',
+        fieldConfidences: null,
+      });
+      invoice.markAsNeedsReview();
+      invoice.approve('reviewer');
+      await repo.save(invoice);
+    }
+
+    it('should filter by invoiceDate range (inclusive) — not by upload timestamp', async () => {
+      await createApprovedInvoiceOn('d-1', '2026-04-30');
+      await createApprovedInvoiceOn('d-2', '2026-05-01');
+      await createApprovedInvoiceOn('d-3', '2026-05-13');
+      await createApprovedInvoiceOn('d-4', '2026-05-14');
+
+      const inRange = await repo.findByFilters({ dateFrom: '2026-05-01', dateTo: '2026-05-13' });
+      expect(inRange.map((i) => i.id).sort()).toEqual(['d-2', 'd-3']);
+
+      const onlyFrom = await repo.findByFilters({ dateFrom: '2026-05-13' });
+      expect(onlyFrom.map((i) => i.id).sort()).toEqual(['d-3', 'd-4']);
+
+      const onlyTo = await repo.findByFilters({ dateTo: '2026-05-01' });
+      expect(onlyTo.map((i) => i.id).sort()).toEqual(['d-1', 'd-2']);
     });
 
     it('should apply combined status + schemaId filters', async () => {

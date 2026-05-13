@@ -85,7 +85,7 @@ export class EnvConfigService {
 
   /** @returns API retry count */
   get apiRetryCount(): number {
-    return parseInt(this.get('API_RETRY_COUNT', '3'), 10);
+    return parseInt(this.get('API_RETRY_COUNT', '6'), 10);
   }
 
   /** @returns Dashboard refresh interval in seconds */
@@ -96,5 +96,58 @@ export class EnvConfigService {
   /** @returns Whether to use mock Viettel Product API */
   get useMockProductApi(): boolean {
     return !this.viettelProductApiUrl;
+  }
+
+  // ── Queue configuration ──
+
+  /** @returns Queue backend: 'memory' (SQLite-backed in-proc) or 'redis' (BullMQ) */
+  get queueBackend(): 'memory' | 'redis' {
+    const v = this.get('QUEUE_BACKEND', 'memory').toLowerCase();
+    return v === 'redis' ? 'redis' : 'memory';
+  }
+
+  /** @returns Max parallel jobs per worker (default 8) */
+  get queueConcurrency(): number {
+    return Math.max(1, parseInt(this.get('QUEUE_CONCURRENCY', '8'), 10));
+  }
+
+  /** @returns Worker poll interval in ms (memory backend only) */
+  get queuePollIntervalMs(): number {
+    return Math.max(100, parseInt(this.get('QUEUE_POLL_INTERVAL_MS', '500'), 10));
+  }
+
+  /** @returns Max retry attempts per job before permanent failure */
+  get queueMaxAttempts(): number {
+    return Math.max(1, parseInt(this.get('QUEUE_MAX_ATTEMPTS', '3'), 10));
+  }
+
+  /** @returns Rate limit: max Gemini API calls per minute (0 = unlimited) */
+  get queueRateLimitPerMinute(): number {
+    return Math.max(0, parseInt(this.get('QUEUE_RATE_LIMIT_PER_MINUTE', '60'), 10));
+  }
+
+  /** @returns Redis host (when queueBackend=redis) */
+  get redisHost(): string {
+    return this.get('REDIS_HOST', '127.0.0.1');
+  }
+
+  /** @returns Redis port */
+  get redisPort(): number {
+    return parseInt(this.get('REDIS_PORT', '6379'), 10);
+  }
+
+  /** @returns Redis password, or empty string if none */
+  get redisPassword(): string {
+    return this.get('REDIS_PASSWORD', '');
+  }
+
+  /** @returns Redis database number (0-15 typically) */
+  get redisDb(): number {
+    return parseInt(this.get('REDIS_DB', '0'), 10);
+  }
+
+  /** @returns Key prefix for BullMQ queues in Redis */
+  get redisKeyPrefix(): string {
+    return this.get('REDIS_KEY_PREFIX', 'viettel_ocr');
   }
 }

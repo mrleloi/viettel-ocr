@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   IOcrService,
   OcrExtractionResult,
   SchemaInfo,
 } from '../../domain/processing/ocr.service';
 import { EnvConfigService } from '../config/env-config.service';
+import { RateLimiter } from '../queue/rate-limiter.service';
 
 /**
  * Gemini Flash API client implementing the IOcrService domain port.
@@ -20,9 +21,10 @@ export class GeminiClient implements IOcrService {
 
   constructor(
     private readonly config: EnvConfigService,
+    @Optional() private readonly rateLimiter?: RateLimiter,
   ) {
     this.apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.geminiModel}:generateContent`;
-    this.baseDelay = 1000;
+    this.baseDelay = 2000;
   }
 
   /**
@@ -38,7 +40,7 @@ export class GeminiClient implements IOcrService {
     const instance = Object.create(GeminiClient.prototype) as GeminiClient;
     Object.defineProperty(instance, 'config', { value: config });
     Object.defineProperty(instance, 'apiUrl', {
-      value: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+      value: `https://generativelanguage.googleapis.com/v1beta/models/${(config as any).geminiModel || 'gemini-2.5-pro'}:generateContent`,
     });
     Object.defineProperty(instance, 'baseDelay', { value: baseDelay });
     Object.defineProperty(instance, 'logger', { value: new Logger(GeminiClient.name) });
@@ -134,6 +136,11 @@ All monetary values as integers (VND). Dates as YYYY-MM-DD. If field not found, 
     let lastBody: string | null = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Rate-limit outbound calls (token bucket, waits if quota exhausted)
+      if (this.rateLimiter) {
+        await this.rateLimiter.acquire();
+      }
+
       let response: Response;
       try {
         response = await fetch(
@@ -173,17 +180,23 @@ All monetary values as integers (VND). Dates as YYYY-MM-DD. If field not found, 
         `Gemini API attempt ${attempt + 1} returned ${response.status} ${response.statusText}: ${lastBody?.substring(0, 500)}`,
       );
 
-      // Rate limited — exponential backoff with 3x multiplier
-      if (response.status === 429) {
+      // Rate limited or 503 overloaded — exponential backoff with 3x multiplier
+      if (response.status === 429 || response.status === 503) {
         const delay = this.baseDelay * Math.pow(3, attempt);
+        this.logger.warn(
+          `Gemini API ${response.status} on attempt ${attempt + 1}/${maxRetries}, retrying in ${Math.round(delay / 1000)}s...`,
+        );
         await this.delay(delay);
         continue;
       }
 
-      // Server error — exponential backoff with 2x multiplier
+      // Other server errors (500, 502, 504) — exponential backoff with 2x multiplier
       if (response.status >= 500) {
         if (attempt < maxRetries - 1) {
           const delay = this.baseDelay * Math.pow(2, attempt);
+          this.logger.warn(
+            `Gemini API ${response.status} on attempt ${attempt + 1}/${maxRetries}, retrying in ${Math.round(delay / 1000)}s...`,
+          );
           await this.delay(delay);
           continue;
         }

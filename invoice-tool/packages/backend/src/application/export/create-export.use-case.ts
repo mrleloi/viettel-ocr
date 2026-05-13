@@ -1,9 +1,10 @@
 import ExcelJS from 'exceljs';
 import type { IInvoiceRepository } from '../../domain/invoice/invoice.repository';
+import type { ISchemaRepository } from '../../domain/schema/schema.repository';
 import type { IFileStorage } from '../../domain/shared/file-storage';
 import type { Invoice } from '../../domain/invoice/invoice.entity';
 import type { LineItemProps } from '@invoice-tool/shared';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 
 /** Supported export formats */
 export type ExportFormat = 'csv' | 'json' | 'xlsx';
@@ -13,8 +14,12 @@ export interface CreateExportInput {
   readonly format: ExportFormat;
   readonly batchId?: string;
   readonly schemaId?: string;
+  /** Invoice-date range (YYYY-MM-DD, inclusive) — date printed on the invoice. */
   readonly dateFrom?: string;
   readonly dateTo?: string;
+  /** Processed-date range (YYYY-MM-DD, inclusive) — system date when the file was processed. */
+  readonly processedFrom?: string;
+  readonly processedTo?: string;
   readonly statusFilter?: string;
 }
 
@@ -43,11 +48,36 @@ interface ExportableInvoice {
   readonly total: number;
   readonly schemaId: string;
   readonly status: string;
+  /** ISO 8601 timestamp (UTC) — when processing finished, or empty if not yet processed. */
+  readonly processedAt: string;
   readonly lineItems: ReadonlyArray<LineItemProps>;
 }
 
-function generateExportId(): string {
-  return `exp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+/**
+ * Slugify a Vietnamese string: remove diacritics, lowercase, keep alphanumeric + hyphens.
+ * e.g. "CÔNG TY TNHH APPLE VIỆT NAM" → "cong-ty-tnhh-apple-viet-nam"
+ */
+function slugify(input: string, maxLen = 40): string {
+  const s = input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return s.slice(0, maxLen).replace(/-+$/, '');
+}
+
+/** Pad number to two digits. */
+function pad2(n: number): string {
+  return n.toString().padStart(2, '0');
+}
+
+/** Format current local time as YYYY-MM-DD_HHmmss. */
+function formatTimestamp(d: Date = new Date()): string {
+  const date = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const time = `${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+  return `${date}_${time}`;
 }
 
 const VALID_FORMATS: ReadonlyArray<ExportFormat> = ['csv', 'json', 'xlsx'];
@@ -64,6 +94,7 @@ export class CreateExportUseCase {
   constructor(
     @Inject('IInvoiceRepository') private readonly invoiceRepo: IInvoiceRepository,
     @Inject('IFileStorage') private readonly fileStorage: IFileStorage,
+    @Optional() @Inject('ISchemaRepository') private readonly schemaRepo?: ISchemaRepository,
   ) {}
 
   /**
@@ -80,7 +111,7 @@ export class CreateExportUseCase {
 
     const invoices = await this.fetchFilteredInvoices(input);
 
-    const exportId = generateExportId();
+    const exportId = await this.generateExportId(input, invoices.length);
     const filename = `${exportId}.${input.format}`;
     let contentBuffer: Buffer;
 
@@ -103,6 +134,43 @@ export class CreateExportUseCase {
   }
 
   /**
+   * Generate a structured, human-readable export ID.
+   * Format: `hoadon_{scope}_{YYYY-MM-DD}_{HHmmss}_{count}rows_{rand4}`
+   * - scope: NCC slug if schema filter, 'batch-{short}' if batch filter, 'all' otherwise
+   * - Randoms prevent collisions when two exports happen in the same second
+   */
+  private async generateExportId(input: CreateExportInput, recordCount: number): Promise<string> {
+    const parts: string[] = ['hoadon'];
+
+    // Scope segment
+    if (input.schemaId && this.schemaRepo) {
+      const schema = await this.schemaRepo.findById(input.schemaId);
+      if (schema) {
+        const slug = slugify(schema.nccName ?? schema.name);
+        if (slug) parts.push(slug);
+      } else {
+        parts.push('sch-' + input.schemaId.slice(0, 8));
+      }
+    } else if (input.batchId) {
+      parts.push('batch-' + input.batchId.slice(0, 8));
+    } else {
+      parts.push('all');
+    }
+
+    // Status segment (only if filtering by status and no batch — batch exports are always approved)
+    if (input.statusFilter && !input.batchId) {
+      parts.push(input.statusFilter);
+    }
+
+    // Timestamp + record count + random suffix for uniqueness
+    parts.push(formatTimestamp());
+    parts.push(`${recordCount}rows`);
+    parts.push(Math.random().toString(36).slice(2, 6));
+
+    return parts.join('_');
+  }
+
+  /**
    * Fetch invoices matching the export filters.
    */
   private async fetchFilteredInvoices(input: CreateExportInput): Promise<ExportableInvoice[]> {
@@ -121,6 +189,8 @@ export class CreateExportUseCase {
         schemaId: input.schemaId,
         dateFrom: input.dateFrom,
         dateTo: input.dateTo,
+        processedFrom: input.processedFrom,
+        processedTo: input.processedTo,
       });
       for (const inv of invoices) {
         allInvoices.push(this.toExportable(inv));
@@ -132,6 +202,8 @@ export class CreateExportUseCase {
       if (input.schemaId && inv.schemaId !== input.schemaId) return false;
       if (input.dateFrom && inv.invoiceDate && inv.invoiceDate < input.dateFrom) return false;
       if (input.dateTo && inv.invoiceDate && inv.invoiceDate > input.dateTo) return false;
+      if (input.processedFrom && (!inv.processedAt || inv.processedAt.slice(0, 10) < input.processedFrom)) return false;
+      if (input.processedTo && (!inv.processedAt || inv.processedAt.slice(0, 10) > input.processedTo)) return false;
       return true;
     });
   }
@@ -156,6 +228,7 @@ export class CreateExportUseCase {
       total: invoice.total ?? 0,
       schemaId: invoice.schemaId ?? '',
       status: invoice.status,
+      processedAt: invoice.processedAt ? invoice.processedAt.toISOString() : '',
       lineItems: invoice.lineItems ?? [],
     };
   }
@@ -247,6 +320,7 @@ export class CreateExportUseCase {
       { header: 'Trạng thái', key: 'status', width: 14 },
       // Line item fields
       { header: 'STT dòng', key: 'lineIndex', width: 8 },
+      { header: 'Mã sản phẩm', key: 'itemProductCode', width: 16 },
       { header: 'Tên hàng hóa / dịch vụ', key: 'itemName', width: 40 },
       { header: 'Đơn vị', key: 'itemUnit', width: 10 },
       { header: 'Số lượng', key: 'itemQuantity', width: 10, style: { numFmt: NUMBER } },
@@ -284,6 +358,7 @@ export class CreateExportUseCase {
         sheet.addRow({
           ...invoiceFields,
           lineIndex: idx + 1,
+          itemProductCode: item.productCode ?? '',
           itemName: item.name,
           itemUnit: item.unit ?? '',
           itemQuantity: item.quantity,
@@ -374,6 +449,7 @@ export class CreateExportUseCase {
       { header: 'ID hóa đơn', key: 'invoiceId', width: 28 },
       { header: 'Số hóa đơn', key: 'invoiceNumber', width: 18 },
       { header: 'STT', key: 'index', width: 6 },
+      { header: 'Mã sản phẩm', key: 'productCode', width: 16 },
       { header: 'Tên hàng hóa / dịch vụ', key: 'name', width: 40 },
       { header: 'Đơn vị', key: 'unit', width: 10 },
       { header: 'Số lượng', key: 'quantity', width: 10, style: { numFmt: NUMBER } },
@@ -390,6 +466,7 @@ export class CreateExportUseCase {
           invoiceId: inv.id,
           invoiceNumber: inv.invoiceNumber,
           index: idx + 1,
+          productCode: item.productCode ?? '',
           name: item.name,
           unit: item.unit ?? '',
           quantity: item.quantity,

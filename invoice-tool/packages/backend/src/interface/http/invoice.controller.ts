@@ -328,6 +328,7 @@ export class InvoiceController {
       // New fields (Session 20)
       lineItems: inv.lineItems?.length
         ? inv.lineItems.map(li => ({
+            productCode: li.productCode ?? null,
             name: li.name,
             unit: li.unit ?? null,
             quantity: li.quantity,

@@ -22,17 +22,29 @@ export class CreateExportDto {
   @IsString()
   schemaId?: string;
 
-  /** Optional date range start (ISO string) */
-  @ApiPropertyOptional({ description: 'Date range start (ISO 8601)' })
+  /** Invoice-date range start (YYYY-MM-DD, inclusive) — filter by the date printed on the invoice. */
+  @ApiPropertyOptional({ description: 'Invoice-date range start (YYYY-MM-DD)' })
   @IsOptional()
   @IsString()
   dateFrom?: string;
 
-  /** Optional date range end (ISO string) */
-  @ApiPropertyOptional({ description: 'Date range end (ISO 8601)' })
+  /** Invoice-date range end (YYYY-MM-DD, inclusive). */
+  @ApiPropertyOptional({ description: 'Invoice-date range end (YYYY-MM-DD)' })
   @IsOptional()
   @IsString()
   dateTo?: string;
+
+  /** Processed-date range start (YYYY-MM-DD, inclusive) — filter by the system date when the file was processed. */
+  @ApiPropertyOptional({ description: 'Processed-date range start (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  processedFrom?: string;
+
+  /** Processed-date range end (YYYY-MM-DD, inclusive). */
+  @ApiPropertyOptional({ description: 'Processed-date range end (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  processedTo?: string;
 
   /** Optional status filter (e.g., 'approved') */
   @ApiPropertyOptional({ description: 'Filter by invoice status (e.g., approved)' })

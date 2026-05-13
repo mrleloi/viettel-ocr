@@ -166,10 +166,11 @@ export class Invoice {
 
   /**
    * Mark invoice as processing.
-   * @throws DomainError if not in pending status
+   * Allowed from 'pending' (normal flow) or 'processing' (crash-recovery retry).
+   * @throws DomainError if in any other status
    */
   markAsProcessing(): void {
-    if (this.props.status !== 'pending') {
+    if (this.props.status !== 'pending' && this.props.status !== 'processing') {
       throw new DomainError(`Cannot start processing invoice in "${this.props.status}" status`);
     }
     this.props = { ...this.props, status: 'processing', updatedAt: new Date() };
@@ -302,6 +303,21 @@ export class Invoice {
   }
 
   /**
+   * Auto-approve the invoice when confidence exceeds the threshold.
+   * Can be called from 'validated' or 'mapped' status (pipeline route stage).
+   */
+  autoApprove(): void {
+    const now = new Date();
+    this.props = {
+      ...this.props,
+      status: 'approved',
+      reviewedBy: 'auto',
+      reviewedAt: now,
+      updatedAt: now,
+    };
+  }
+
+  /**
    * Assign a schema to this invoice (e.g., after auto-creating a schema).
    * @param schemaId Schema ID to assign
    */
@@ -323,7 +339,7 @@ export class Invoice {
    * @throws DomainError if not in a reprocessable status
    */
   resumeForReprocess(): void {
-    const reprocessableStatuses: InvoiceStatus[] = ['approved', 'rejected', 'error', 'duplicate'];
+    const reprocessableStatuses: InvoiceStatus[] = ['approved', 'rejected', 'error', 'duplicate', 'needs_review', 'mapped'];
     if (!reprocessableStatuses.includes(this.props.status)) {
       throw new DomainError(`Cannot reprocess invoice in "${this.props.status}" status`);
     }

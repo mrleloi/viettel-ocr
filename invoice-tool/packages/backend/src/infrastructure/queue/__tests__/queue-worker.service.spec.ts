@@ -87,6 +87,7 @@ describe('QueueWorkerService', () => {
       queue.takePending.mockResolvedValue([job]);
 
       await sut.poll();
+      await sut.waitForIdle();
 
       expect(queue.takePending).toHaveBeenCalledWith(5);
       expect(processInvoice.execute).toHaveBeenCalledWith({ invoiceId: 'inv-1' });
@@ -97,6 +98,7 @@ describe('QueueWorkerService', () => {
       queue.takePending.mockResolvedValue([]);
 
       await sut.poll();
+      await sut.waitForIdle();
 
       expect(processInvoice.execute).not.toHaveBeenCalled();
       expect(queue.markCompleted).not.toHaveBeenCalled();
@@ -108,12 +110,13 @@ describe('QueueWorkerService', () => {
       processInvoice.execute.mockRejectedValue(new Error('Invoice not found'));
 
       await sut.poll();
+      await sut.waitForIdle();
 
       expect(queue.markFailed).toHaveBeenCalledWith('job-2', 'Invoice not found');
       expect(queue.markCompleted).not.toHaveBeenCalled();
     });
 
-    it('should process multiple jobs in a single poll cycle', async () => {
+    it('should dispatch multiple jobs concurrently in a single poll cycle', async () => {
       const jobs = [
         makeJob({ id: 'j1', invoiceId: 'inv-a' }),
         makeJob({ id: 'j2', invoiceId: 'inv-b' }),
@@ -122,6 +125,7 @@ describe('QueueWorkerService', () => {
       queue.takePending.mockResolvedValue(jobs);
 
       await sut.poll();
+      await sut.waitForIdle();
 
       expect(processInvoice.execute).toHaveBeenCalledTimes(3);
       expect(queue.markCompleted).toHaveBeenCalledTimes(3);
@@ -140,6 +144,7 @@ describe('QueueWorkerService', () => {
         .mockResolvedValueOnce({ invoiceId: 'inv-ok2', finalStatus: 'mapped', overallConfidence: 0.8, stages: [] });
 
       await sut.poll();
+      await sut.waitForIdle();
 
       expect(queue.markCompleted).toHaveBeenCalledTimes(2);
       expect(queue.markFailed).toHaveBeenCalledTimes(1);

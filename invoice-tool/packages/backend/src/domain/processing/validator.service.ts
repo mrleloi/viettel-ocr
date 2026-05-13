@@ -311,16 +311,17 @@ export class ValidatorService {
         }
       }
 
-      // Line items sum ≈ subtotal
+      // Line items sum must match subtotal — a mismatch usually means OCR read the wrong column
+      // (e.g., picked up the VAT-amount column as subtotal). This is an error, not a warning.
       if (data.subtotal !== null) {
         totalRules++;
         const lineItemsSum = data.lineItems.reduce((sum, item) => sum + (item.amount ?? 0), 0);
         if (Math.abs(lineItemsSum - data.subtotal) > VND_TOLERANCE) {
-          warnings.push({
+          errors.push({
             field: 'lineItems',
             rule: 'line_items_sum_matches_subtotal',
             message: 'Sum of line item amounts does not match subtotal',
-            severity: 'warning',
+            severity: 'error',
             expected: String(data.subtotal),
             actual: String(lineItemsSum),
           });

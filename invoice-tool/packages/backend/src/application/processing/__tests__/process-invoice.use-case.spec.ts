@@ -368,6 +368,145 @@ describe('ProcessInvoiceUseCase', () => {
         .rejects.toThrow('Invoice not found');
     });
 
+    it('should unwrap {value, confidence} envelopes inside line items (Gemini structured output)', async () => {
+      const invoice = createTestInvoice();
+      const batch = createTestBatch();
+      let saved: Invoice | null = null;
+      invoiceRepo.findById.mockResolvedValue(invoice);
+      batchRepo.findById.mockResolvedValue(batch);
+      invoiceRepo.save.mockImplementation(async (inv: Invoice) => { saved = inv; });
+
+      // Mimic the production Gemini response: each line-item field wrapped in {value, confidence}
+      ocrService.extract.mockResolvedValue({
+        rawText: 'raw',
+        extractedData: {
+          invoice_number: { value: 'INV-NEG', confidence: 1 },
+          invoice_symbol: { value: '1K26TAA', confidence: 1 },
+          invoice_date: { value: '2026-05-05', confidence: 1 },
+          seller_name: { value: 'Apple VN', confidence: 1 },
+          seller_tax_id: { value: '0313510827', confidence: 1 },
+          buyer_name: { value: 'Viettel', confidence: 1 },
+          buyer_tax_id: { value: '0104831030', confidence: 1 },
+          subtotal: { value: -7800000, confidence: 1 },
+          vat_rate: { value: 8, confidence: 1 },
+          vat_amount: { value: -624000, confidence: 1 },
+          total: { value: -8424000, confidence: 1 },
+          line_items: [
+            {
+              product_code: { value: 'MXP93ZP/A', confidence: 1 },
+              name: { value: 'AIRPODS 4 ANC', confidence: 1 },
+              unit: { value: 'Cái', confidence: 1 },
+              quantity: { value: 1, confidence: 1 },
+              unit_price: { value: -7800000, confidence: 1 },
+              amount: { value: -7800000, confidence: 1 },
+              vat_rate: { value: 8, confidence: 1 },
+              vat_amount: { value: -624000, confidence: 1 },
+              total_with_vat: { value: -8424000, confidence: 1 },
+            },
+          ],
+        },
+        fieldConfidences: {},
+      });
+
+      await sut.execute({ invoiceId: 'inv-1' });
+
+      expect(saved).not.toBeNull();
+      const items = saved!.lineItems;
+      expect(items).toHaveLength(1);
+      expect(items[0].productCode).toBe('MXP93ZP/A');
+      expect(items[0].name).toBe('AIRPODS 4 ANC');
+      expect(items[0].unit).toBe('Cái');
+      expect(items[0].quantity).toBe(1);
+      expect(items[0].unitPrice).toBe(-7800000);
+      expect(items[0].amount).toBe(-7800000);
+      expect(items[0].vatRate).toBe(8);
+      expect(items[0].vatAmount).toBe(-624000);
+      expect(items[0].totalWithVat).toBe(-8424000);
+    });
+
+    it('should self-heal header totals from line items when Gemini misses multi-page Sub-total', async () => {
+      const invoice = createTestInvoice();
+      const batch = createTestBatch();
+      let saved: Invoice | null = null;
+      invoiceRepo.findById.mockResolvedValue(invoice);
+      batchRepo.findById.mockResolvedValue(batch);
+      invoiceRepo.save.mockImplementation(async (inv: Invoice) => { saved = inv; });
+
+      // Mimic real bug: Gemini parsed 5 line items across 2 pages correctly,
+      // but reported header subtotal/vat/total by summing only the first 3 visible lines.
+      ocrService.extract.mockResolvedValue({
+        rawText: 'raw',
+        extractedData: {
+          invoice_number: 'INV-1',
+          invoice_symbol: '1K26TAA',
+          invoice_date: '2026-05-05',
+          seller_name: 'Apple VN',
+          seller_tax_id: '0313510827',
+          buyer_name: 'Viettel',
+          buyer_tax_id: '0104831030',
+          // Header subtotal/vat/total reflect only the 3 first-page lines (WRONG)
+          subtotal: -664500000,
+          vat_rate: 8,
+          vat_amount: -53160000,
+          total: -717660000,
+          line_items: [
+            { product_code: 'MD4J4ZA/A', name: 'IPAD WIFI 256GB', unit: 'Cái', quantity: 1, unit_price: -1500000,    amount: -1500000,    vat_rate: 8, vat_amount: -120000,    total_with_vat: -1620000 },
+            { product_code: 'MD4D4ZA/A', name: 'IPAD WIFI 128GB', unit: 'Cái', quantity: 1, unit_price: -172500000,  amount: -172500000,  vat_rate: 8, vat_amount: -13800000,  total_with_vat: -186300000 },
+            { product_code: 'MD3Y4ZA/A', name: 'IPAD WIFI 128GB', unit: 'Cái', quantity: 1, unit_price: -490500000,  amount: -490500000,  vat_rate: 8, vat_amount: -39240000,  total_with_vat: -529740000 },
+            { product_code: 'MD3Y4ZA/A', name: 'IPAD WIFI 128GB', unit: 'Cái', quantity: 1, unit_price: -826480000,  amount: -826480000,  vat_rate: 8, vat_amount: -66118400,  total_with_vat: -892598400 },
+            { product_code: 'MD7K4ZA/A', name: 'IPAD WF CL 256GB', unit: 'Cái', quantity: 1, unit_price: -1500000,    amount: -1500000,    vat_rate: 8, vat_amount: -120000,    total_with_vat: -1620000 },
+          ],
+        },
+        fieldConfidences: {},
+      });
+
+      await sut.execute({ invoiceId: 'inv-1' });
+
+      expect(saved).not.toBeNull();
+      // Self-heal should override header with line-item sums
+      expect(saved!.subtotal).toBe(-1492480000);
+      expect(saved!.vatAmount).toBe(-119398400);
+      expect(saved!.total).toBe(-1611878400);
+      expect(saved!.lineItems).toHaveLength(5);
+    });
+
+    it('should NOT self-heal when line items match header (everything consistent)', async () => {
+      const invoice = createTestInvoice();
+      const batch = createTestBatch();
+      let saved: Invoice | null = null;
+      invoiceRepo.findById.mockResolvedValue(invoice);
+      batchRepo.findById.mockResolvedValue(batch);
+      invoiceRepo.save.mockImplementation(async (inv: Invoice) => { saved = inv; });
+
+      ocrService.extract.mockResolvedValue({
+        rawText: 'raw',
+        extractedData: {
+          invoice_number: 'INV-2',
+          invoice_symbol: 'AA/26E',
+          invoice_date: '2026-05-05',
+          seller_name: 'X',
+          seller_tax_id: '0123456789',
+          buyer_name: 'Y',
+          buyer_tax_id: '9876543210',
+          subtotal: 1000000,
+          vat_rate: 10,
+          vat_amount: 100000,
+          total: 1100000,
+          line_items: [
+            { name: 'Item A', unit: 'cái', quantity: 2, unit_price: 500000, amount: 1000000, vat_rate: 10, vat_amount: 100000, total_with_vat: 1100000 },
+          ],
+        },
+        fieldConfidences: {},
+      });
+
+      await sut.execute({ invoiceId: 'inv-1' });
+
+      expect(saved).not.toBeNull();
+      expect(saved!.subtotal).toBe(1000000);
+      expect(saved!.vatAmount).toBe(100000);
+      expect(saved!.total).toBe(1100000);
+    });
+
     it('should mark invoice as error and update batch on failure', async () => {
       const invoice = createTestInvoice();
       const batch = createTestBatch();
